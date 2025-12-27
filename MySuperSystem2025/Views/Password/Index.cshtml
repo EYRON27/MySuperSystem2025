@@ -1,0 +1,124 @@
+@model MySuperSystem2025.Models.ViewModels.Password.PasswordDashboardViewModel
+@{
+    ViewData["Title"] = "Password Manager";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 fw-bold"><i class="bi bi-shield-lock me-2"></i>Password Manager</h1>
+    <div>
+        <a asp-action="Categories" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-tags me-1"></i>Categories
+        </a>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Add Password
+        </a>
+    </div>
+</div>
+
+<!-- Security Notice -->
+<div class="alert alert-info mb-4">
+    <i class="bi bi-shield-check me-2"></i>
+    <strong>Your passwords are encrypted</strong> using AES-256 encryption. To view a password, you'll need to re-enter your account password.
+</div>
+
+<!-- Search and Filter -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label">Search</label>
+                <input type="text" name="search" class="form-control" placeholder="Search by website, username, or notes..." value="@Model.SearchTerm" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Category</label>
+                <select name="categoryId" class="form-select">
+                    <option value="">All Categories</option>
+                    @foreach (var category in Model.Categories)
+                    {
+                        <option value="@category.Id" selected="@(Model.FilterCategoryId == category.Id)">@category.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i>Search
+                </button>
+            </div>
+            <div class="col-md-2">
+                <a asp-action="Index" class="btn btn-outline-secondary w-100">
+                    <i class="bi bi-x-circle me-1"></i>Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Password List -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-list-ul me-2"></i>Stored Passwords</span>
+        <span class="badge bg-primary">@Model.TotalPasswords total</span>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.Passwords.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Website / App</th>
+                            <th>Username</th>
+                            <th>Password</th>
+                            <th>Category</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var password in Model.Passwords)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-bold">@password.WebsiteOrAppName</div>
+                                    @if (!string.IsNullOrEmpty(password.WebsiteUrl))
+                                    {
+                                        <small class="text-muted">
+                                            <a href="@password.WebsiteUrl" target="_blank" class="text-decoration-none">
+                                                <i class="bi bi-box-arrow-up-right me-1"></i>@password.WebsiteUrl
+                                            </a>
+                                        </small>
+                                    }
+                                </td>
+                                <td>@password.Username</td>
+                                <td>
+                                    <span class="text-muted">@password.MaskedPassword</span>
+                                    <a asp-action="Reveal" asp-route-id="@password.Id" class="btn btn-sm btn-outline-secondary ms-2" title="Reveal Password">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                </td>
+                                <td><span class="badge bg-secondary">@password.CategoryName</span></td>
+                                <td class="text-center">
+                                    <a asp-action="Edit" asp-route-id="@password.Id" class="btn btn-sm btn-outline-primary" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@password.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this password?');">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-shield-lock text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-2">No passwords stored yet</p>
+                <a asp-action="Create" class="btn btn-primary">Store Your First Password</a>
+            </div>
+        }
+    </div>
+</div>

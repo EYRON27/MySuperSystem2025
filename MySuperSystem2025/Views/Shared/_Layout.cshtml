@@ -1,0 +1,200 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - MySuperSystem2025</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/MySuperSystem2025.styles.css" asp-append-version="true" />
+    <style>
+        :root {
+            --sidebar-width: 250px;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: linear-gradient(180deg, #1e3a5f 0%, #0d1b2a 100%);
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+        }
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin: 4px 12px;
+            transition: all 0.3s ease;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: #fff;
+            background: rgba(255,255,255,0.1);
+        }
+        .sidebar .nav-link i {
+            margin-right: 10px;
+            font-size: 1.1rem;
+        }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f8f9fa;
+        }
+        .navbar-top {
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        .card {
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border-radius: 12px;
+        }
+        .card-header {
+            background: transparent;
+            border-bottom: 1px solid rgba(0,0,0,0.08);
+            font-weight: 600;
+        }
+        .stat-card {
+            transition: transform 0.2s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2d5a87 0%, #1e3a5f 100%);
+        }
+        .table th {
+            font-weight: 600;
+            color: #495057;
+            border-top: none;
+        }
+        .alert {
+            border-radius: 8px;
+        }
+        .form-control, .form-select {
+            border-radius: 8px;
+            padding: 10px 15px;
+        }
+        .brand-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+            padding: 20px;
+            display: block;
+        }
+        main {
+            flex: 1;
+        }
+        .footer {
+            background: #fff;
+            box-shadow: 0 -2px 4px rgba(0,0,0,0.08);
+            padding: 20px 0;
+            text-align: center;
+            color: #495057;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <!-- Sidebar -->
+        <nav class="sidebar d-flex flex-column">
+            <a asp-controller="Dashboard" asp-action="Index" class="brand-logo">
+                <i class="bi bi-grid-3x3-gap-fill me-2"></i>MySuperSystem
+            </a>
+            <ul class="nav flex-column flex-grow-1">
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Expense" ? "active" : "")" asp-controller="Expense" asp-action="Index">
+                        <i class="bi bi-wallet2"></i> Expenses
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Task" ? "active" : "")" asp-controller="Task" asp-action="Index">
+                        <i class="bi bi-check2-square"></i> Tasks
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Password" ? "active" : "")" asp-controller="Password" asp-action="Index">
+                        <i class="bi bi-shield-lock"></i> Passwords
+                    </a>
+                </li>
+            </ul>
+            <div class="mt-auto p-3">
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent" style="color: rgba(255,255,255,0.8);">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </button>
+                </form>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <nav class="navbar navbar-top px-4 py-3">
+                <div class="container-fluid">
+                    <span class="navbar-text">
+                        Welcome, <strong>@User.Identity?.Name</strong>
+                    </span>
+                    <div class="d-flex align-items-center">
+                        <span class="text-muted small">@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</span>
+                    </div>
+                </div>
+            </nav>
+            <main class="p-4">
+                @if (TempData["Success"] != null)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+                @RenderBody()
+            </main>
+            <footer class="footer">
+                <div class="container-fluid">
+                    <p class="mb-0">Aarvieve Supersystem 2025</p>
+                </div>
+            </footer>
+        </div>
+    }
+    else
+    {
+        <div class="min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);">
+            <div class="container">
+                @RenderBody()
+            </div>
+        </div>
+    }
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

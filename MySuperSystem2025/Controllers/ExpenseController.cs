@@ -1,0 +1,244 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using MySuperSystem2025.Models.ViewModels.Expense;
+using MySuperSystem2025.Services.Interfaces;
+
+namespace MySuperSystem2025.Controllers
+{
+    /// <summary>
+    /// Expense controller handling expense management functionality
+    /// </summary>
+    [Authorize]
+    public class ExpenseController : Controller
+    {
+        private readonly IExpenseService _expenseService;
+        private readonly ILogger<ExpenseController> _logger;
+
+        public ExpenseController(IExpenseService expenseService, ILogger<ExpenseController> logger)
+        {
+            _expenseService = expenseService;
+            _logger = logger;
+        }
+
+        private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+        // GET: /Expense
+        public async Task<IActionResult> Index(string? period = null, int? categoryId = null)
+        {
+            var dashboard = await _expenseService.GetDashboardAsync(UserId);
+            return View(dashboard);
+        }
+
+        // GET: /Expense/List
+        public async Task<IActionResult> List(string? period = null, int? categoryId = null)
+        {
+            var expenses = await _expenseService.GetExpensesAsync(UserId, period, categoryId);
+            return View(expenses);
+        }
+
+        // GET: /Expense/Create
+        [HttpGet]
+        public async Task<IActionResult> Create()
+        {
+            var categories = await _expenseService.GetCategoriesAsync(UserId);
+            var model = new CreateExpenseViewModel
+            {
+                Date = DateTime.Today,
+                Categories = new SelectList(categories, "Id", "Name")
+            };
+            return View(model);
+        }
+
+        // POST: /Expense/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(CreateExpenseViewModel model)
+        {
+            if (model.Date.Date > DateTime.Today)
+            {
+                ModelState.AddModelError("Date", "Date cannot be in the future.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var categories = await _expenseService.GetCategoriesAsync(UserId);
+                model.Categories = new SelectList(categories, "Id", "Name");
+                return View(model);
+            }
+
+            var result = await _expenseService.CreateExpenseAsync(model, UserId);
+            if (result)
+            {
+                TempData["Success"] = "Expense created successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            TempData["Error"] = "Failed to create expense.";
+            var cats = await _expenseService.GetCategoriesAsync(UserId);
+            model.Categories = new SelectList(cats, "Id", "Name");
+            return View(model);
+        }
+
+        // GET: /Expense/Edit/5
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var expense = await _expenseService.GetExpenseForEditAsync(id, UserId);
+            if (expense == null)
+            {
+                return NotFound();
+            }
+
+            var categories = await _expenseService.GetCategoriesAsync(UserId);
+            expense.Categories = new SelectList(categories, "Id", "Name");
+            return View(expense);
+        }
+
+        // POST: /Expense/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, EditExpenseViewModel model)
+        {
+            if (id != model.Id)
+            {
+                return BadRequest();
+            }
+
+            if (model.Date.Date > DateTime.Today)
+            {
+                ModelState.AddModelError("Date", "Date cannot be in the future.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var categories = await _expenseService.GetCategoriesAsync(UserId);
+                model.Categories = new SelectList(categories, "Id", "Name");
+                return View(model);
+            }
+
+            var result = await _expenseService.UpdateExpenseAsync(model, UserId);
+            if (result)
+            {
+                TempData["Success"] = "Expense updated successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            TempData["Error"] = "Failed to update expense.";
+            var cats = await _expenseService.GetCategoriesAsync(UserId);
+            model.Categories = new SelectList(cats, "Id", "Name");
+            return View(model);
+        }
+
+        // POST: /Expense/Delete/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var result = await _expenseService.DeleteExpenseAsync(id, UserId);
+            if (result)
+            {
+                TempData["Success"] = "Expense deleted successfully.";
+            }
+            else
+            {
+                TempData["Error"] = "Failed to delete expense.";
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // GET: /Expense/Categories
+        public async Task<IActionResult> Categories()
+        {
+            var categories = await _expenseService.GetCategoriesAsync(UserId);
+            return View(categories);
+        }
+
+        // GET: /Expense/CreateCategory
+        [HttpGet]
+        public IActionResult CreateCategory()
+        {
+            return View(new CreateExpenseCategoryViewModel());
+        }
+
+        // POST: /Expense/CreateCategory
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateCategory(CreateExpenseCategoryViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var result = await _expenseService.CreateCategoryAsync(model, UserId);
+            if (result)
+            {
+                TempData["Success"] = "Category created successfully.";
+                return RedirectToAction(nameof(Categories));
+            }
+
+            ModelState.AddModelError("Name", "Category name already exists.");
+            return View(model);
+        }
+
+        // GET: /Expense/EditCategory/5
+        [HttpGet]
+        public async Task<IActionResult> EditCategory(int id)
+        {
+            var category = await _expenseService.GetCategoryForEditAsync(id, UserId);
+            if (category == null)
+            {
+                return NotFound();
+            }
+
+            return View(category);
+        }
+
+        // POST: /Expense/EditCategory/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditCategory(int id, EditExpenseCategoryViewModel model)
+        {
+            if (id != model.Id)
+            {
+                return BadRequest();
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var result = await _expenseService.UpdateCategoryAsync(model, UserId);
+            if (result)
+            {
+                TempData["Success"] = "Category updated successfully.";
+                return RedirectToAction(nameof(Categories));
+            }
+
+            ModelState.AddModelError("Name", "Category name already exists.");
+            return View(model);
+        }
+
+        // POST: /Expense/DeleteCategory/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            var result = await _expenseService.DeleteCategoryAsync(id, UserId);
+            if (result)
+            {
+                TempData["Success"] = "Category deleted successfully.";
+            }
+            else
+            {
+                TempData["Error"] = "Cannot delete this category. It may be a default category or have expenses associated.";
+            }
+
+            return RedirectToAction(nameof(Categories));
+        }
+    }
+}

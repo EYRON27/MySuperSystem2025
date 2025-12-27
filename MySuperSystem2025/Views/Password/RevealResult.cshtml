@@ -1,0 +1,70 @@
+@model MySuperSystem2025.Models.ViewModels.Password.RevealPasswordViewModel
+@{
+    ViewData["Title"] = "Password Revealed";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-check-circle me-2"></i>Password Revealed
+            </div>
+            <div class="card-body text-center">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>Security Warning:</strong> This password is now visible. Please be careful not to expose it.
+                </div>
+
+                <div class="my-4">
+                    <label class="form-label fw-bold">Your Password:</label>
+                    <div class="input-group">
+                        <input type="text" id="revealedPassword" class="form-control form-control-lg text-center" value="@ViewBag.RevealedPassword" readonly />
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard()">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                    <small id="copyMessage" class="text-success d-none">Copied to clipboard!</small>
+                </div>
+
+                <a asp-action="Index" class="btn btn-primary">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Passwords
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyToClipboard() {
+            var copyText = document.getElementById("revealedPassword");
+            
+            // Modern Clipboard API (preferred)
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(copyText.value).then(function() {
+                    showCopyMessage();
+                }).catch(function(err) {
+                    console.error('Failed to copy:', err);
+                });
+            } else {
+                // Fallback for older browsers
+                copyText.select();
+                copyText.setSelectionRange(0, 99999); // For mobile devices
+                try {
+                    document.execCommand("copy");
+                    showCopyMessage();
+                } catch (err) {
+                    console.error('Failed to copy:', err);
+                }
+            }
+        }
+        
+        function showCopyMessage() {
+            var message = document.getElementById("copyMessage");
+            message.classList.remove("d-none");
+            setTimeout(function() {
+                message.classList.add("d-none");
+            }, 2000);
+        }
+    </script>
+}

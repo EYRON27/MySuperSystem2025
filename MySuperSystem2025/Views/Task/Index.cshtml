@@ -1,0 +1,304 @@
+@model MySuperSystem2025.Models.ViewModels.Task.TaskDashboardViewModel
+@using TaskStatus = MySuperSystem2025.Models.Domain.TaskStatus
+@{
+    ViewData["Title"] = "Task Manager";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 fw-bold"><i class="bi bi-check2-square me-2"></i>Task Manager</h1>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="bi bi-plus-circle me-1"></i>New Task
+    </a>
+</div>
+
+<!-- Summary Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="card stat-card bg-secondary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1 opacity-75">To Do</h6>
+                        <h3 class="mb-0 fw-bold">@Model.PendingCount</h3>
+                    </div>
+                    <i class="bi bi-list-task fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1 opacity-75">Ongoing</h6>
+                        <h3 class="mb-0 fw-bold">@Model.OngoingCount</h3>
+                    </div>
+                    <i class="bi bi-arrow-repeat fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1 opacity-75">Completed</h6>
+                        <h3 class="mb-0 fw-bold">@Model.CompletedCount</h3>
+                    </div>
+                    <i class="bi bi-check-circle fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1 opacity-75">Overdue</h6>
+                        <h3 class="mb-0 fw-bold">@Model.OverdueCount</h3>
+                    </div>
+                    <i class="bi bi-exclamation-triangle fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.OverdueTasks.Any())
+{
+    <!-- Overdue Tasks Section -->
+    <div class="card mb-4 border-danger">
+        <div class="card-header bg-danger text-white">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Overdue Tasks (@Model.OverdueTasks.Count)
+        </div>
+        <div class="card-body p-0">
+            <ul class="list-group list-group-flush">
+                @foreach (var task in Model.OverdueTasks)
+                {
+                    <li class="list-group-item list-group-item-danger">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">@task.Title</h6>
+                                @if (task.Deadline.HasValue)
+                                {
+                                    <small class="text-danger">
+                                        <i class="bi bi-calendar-x me-1"></i>Due: @task.Deadline?.ToString("MMM dd, yyyy hh:mm tt")
+                                    </small>
+                                }
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    @if (task.Status == TaskStatus.ToDo)
+                                    {
+                                        <li>
+                                            <form asp-action="UpdateStatus" method="post">
+                                                <input type="hidden" name="id" value="@task.Id" />
+                                                <input type="hidden" name="status" value="@((int)TaskStatus.Ongoing)" />
+                                                <button type="submit" class="dropdown-item">Start Task</button>
+                                            </form>
+                                        </li>
+                                    }
+                                    <li>
+                                        <form asp-action="UpdateStatus" method="post">
+                                            <input type="hidden" name="id" value="@task.Id" />
+                                            <input type="hidden" name="status" value="@((int)TaskStatus.Completed)" />
+                                            <button type="submit" class="dropdown-item text-success">Complete</button>
+                                        </form>
+                                    </li>
+                                    <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@task.Id">Edit</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-action="Delete" asp-route-id="@task.Id" method="post" onsubmit="return confirm('Delete this task?');">
+                                            <button type="submit" class="dropdown-item text-danger">Delete</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+}
+
+<div class="row g-4">
+    <!-- To Do -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header bg-secondary text-white">
+                <i class="bi bi-list-task me-2"></i>To Do (@Model.ToDoTasks.Count)
+            </div>
+            <div class="card-body p-0">
+                @if (Model.ToDoTasks.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var task in Model.ToDoTasks)
+                        {
+                            <li class="list-group-item @(task.IsOverdue ? "list-group-item-danger" : "")">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">@task.Title</h6>
+                                        @if (task.Deadline.HasValue)
+                                        {
+                                            <small class="text-muted">
+                                                <i class="bi bi-calendar me-1"></i>@task.Deadline?.ToString("MMM dd, yyyy hh:mm tt")
+                                            </small>
+                                        }
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <form asp-action="UpdateStatus" method="post">
+                                                    <input type="hidden" name="id" value="@task.Id" />
+                                                    <input type="hidden" name="status" value="@((int)TaskStatus.Ongoing)" />
+                                                    <button type="submit" class="dropdown-item">Start Task</button>
+                                                </form>
+                                            </li>
+                                            <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@task.Id">Edit</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form asp-action="Delete" asp-route-id="@task.Id" method="post" onsubmit="return confirm('Delete this task?');">
+                                                    <button type="submit" class="dropdown-item text-danger">Delete</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox text-muted fs-1"></i>
+                        <p class="text-muted mt-2 mb-0">No tasks</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Ongoing -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-arrow-repeat me-2"></i>Ongoing (@Model.OngoingTasks.Count)
+            </div>
+            <div class="card-body p-0">
+                @if (Model.OngoingTasks.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var task in Model.OngoingTasks)
+                        {
+                            <li class="list-group-item @(task.IsOverdue ? "list-group-item-danger" : "")">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">@task.Title</h6>
+                                        @if (task.Deadline.HasValue)
+                                        {
+                                            <small class="text-muted">
+                                                <i class="bi bi-calendar me-1"></i>@task.Deadline?.ToString("MMM dd, yyyy hh:mm tt")
+                                            </small>
+                                        }
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <form asp-action="UpdateStatus" method="post">
+                                                    <input type="hidden" name="id" value="@task.Id" />
+                                                    <input type="hidden" name="status" value="@((int)TaskStatus.Completed)" />
+                                                    <button type="submit" class="dropdown-item text-success">Complete</button>
+                                                </form>
+                                            </li>
+                                            <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@task.Id">Edit</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form asp-action="Delete" asp-route-id="@task.Id" method="post" onsubmit="return confirm('Delete this task?');">
+                                                    <button type="submit" class="dropdown-item text-danger">Delete</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox text-muted fs-1"></i>
+                        <p class="text-muted mt-2 mb-0">No tasks</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Completed -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-check-circle me-2"></i>Completed (@Model.CompletedTasks.Count)
+            </div>
+            <div class="card-body p-0">
+                @if (Model.CompletedTasks.Any())
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var task in Model.CompletedTasks)
+                        {
+                            <li class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1 text-decoration-line-through text-muted">@task.Title</h6>
+                                        @if (task.CompletedAt.HasValue)
+                                        {
+                                            <small class="text-muted">
+                                                <i class="bi bi-check me-1"></i>@task.CompletedAt?.ToString("MMM dd, yyyy")
+                                            </small>
+                                        }
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" asp-action="Details" asp-route-id="@task.Id">View Details</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <form asp-action="Delete" asp-route-id="@task.Id" method="post" onsubmit="return confirm('Delete this task?');">
+                                                    <button type="submit" class="dropdown-item text-danger">Delete</button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="text-center py-4">
+                        <i class="bi bi-inbox text-muted fs-1"></i>
+                        <p class="text-muted mt-2 mb-0">No completed tasks</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

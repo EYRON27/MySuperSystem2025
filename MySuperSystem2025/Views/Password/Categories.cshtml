@@ -1,0 +1,77 @@
+@model List<MySuperSystem2025.Models.ViewModels.Password.PasswordCategoryViewModel>
+@{
+    ViewData["Title"] = "Password Categories";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 fw-bold"><i class="bi bi-tags me-2"></i>Password Categories</h1>
+    <div>
+        <a asp-action="Index" class="btn btn-outline-secondary me-2">
+            <i class="bi bi-arrow-left me-1"></i>Back to Passwords
+        </a>
+        <a asp-action="CreateCategory" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-1"></i>Add Category
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Type</th>
+                            <th class="text-center">Passwords</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var category in Model)
+                        {
+                            <tr>
+                                <td class="fw-bold">@category.Name</td>
+                                <td>@(category.Description ?? "—")</td>
+                                <td>
+                                    @if (category.IsDefault)
+                                    {
+                                        <span class="badge bg-info">Default</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Custom</span>
+                                    }
+                                </td>
+                                <td class="text-center">@category.PasswordCount</td>
+                                <td class="text-center">
+                                    <a asp-action="EditCategory" asp-route-id="@category.Id" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    @if (!category.IsDefault && category.PasswordCount == 0)
+                                    {
+                                        <form asp-action="DeleteCategory" asp-route-id="@category.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure?');">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-tags text-muted" style="font-size: 3rem;"></i>
+                <p class="text-muted mt-2">No categories found</p>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,106 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 fw-bold">Dashboard</h1>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Quick Stats -->
+    <div class="col-md-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                        <i class="bi bi-wallet2 text-primary fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Expense Dashboard</h6>
+                        <p class="mb-0 text-muted small">Track your expenses</p>
+                    </div>
+                </div>
+                <a asp-controller="Expense" asp-action="Index" class="stretched-link"></a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
+                        <i class="bi bi-check2-square text-success fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Task Manager</h6>
+                        <p class="mb-0 text-muted small">Manage your tasks</p>
+                    </div>
+                </div>
+                <a asp-controller="Task" asp-action="Index" class="stretched-link"></a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card stat-card h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
+                        <i class="bi bi-shield-lock text-warning fs-4"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Password Manager</h6>
+                        <p class="mb-0 text-muted small">Secure your credentials</p>
+                    </div>
+                </div>
+                <a asp-controller="Password" asp-action="Index" class="stretched-link"></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-lightning me-2"></i>Quick Actions</span>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-controller="Expense" asp-action="Create" class="btn btn-outline-primary">
+                        <i class="bi bi-plus-circle me-2"></i>Add New Expense
+                    </a>
+                    <a asp-controller="Task" asp-action="Create" class="btn btn-outline-success">
+                        <i class="bi bi-plus-circle me-2"></i>Create New Task
+                    </a>
+                    <a asp-controller="Password" asp-action="Create" class="btn btn-outline-warning">
+                        <i class="bi bi-plus-circle me-2"></i>Store New Password
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-info-circle me-2"></i>Getting Started</span>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>Expense Tracking:</strong> Track daily, weekly, monthly, and yearly expenses with categories.
+                    </li>
+                    <li class="mb-3">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>Task Management:</strong> Create and manage tasks with deadlines and status tracking.
+                    </li>
+                    <li class="mb-0">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>Password Manager:</strong> Securely store your passwords with AES encryption.
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
