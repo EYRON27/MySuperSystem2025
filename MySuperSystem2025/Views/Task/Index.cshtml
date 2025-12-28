@@ -114,9 +114,7 @@
                                     <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@task.Id">Edit</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <form asp-action="Delete" asp-route-id="@task.Id" method="post" onsubmit="return confirm('Delete this task?');">
-                                            <button type="submit" class="dropdown-item text-danger">Delete</button>
-                                        </form>
+                                        <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@task.Id">Delete</a>
                                     </li>
                                 </ul>
                             </div>
@@ -167,9 +165,7 @@
                                             <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@task.Id">Edit</a></li>
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
-                                                <form asp-action="Delete" asp-route-id="@task.Id" method="post" onsubmit="return confirm('Delete this task?');">
-                                                    <button type="submit" class="dropdown-item text-danger">Delete</button>
-                                                </form>
+                                                <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@task.Id">Delete</a>
                                             </li>
                                         </ul>
                                     </div>
@@ -227,9 +223,7 @@
                                             <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@task.Id">Edit</a></li>
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
-                                                <form asp-action="Delete" asp-route-id="@task.Id" method="post" onsubmit="return confirm('Delete this task?');">
-                                                    <button type="submit" class="dropdown-item text-danger">Delete</button>
-                                                </form>
+                                                <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@task.Id">Delete</a>
                                             </li>
                                         </ul>
                                     </div>
@@ -280,9 +274,7 @@
                                             <li><a class="dropdown-item" asp-action="Details" asp-route-id="@task.Id">View Details</a></li>
                                             <li><hr class="dropdown-divider"></li>
                                             <li>
-                                                <form asp-action="Delete" asp-route-id="@task.Id" method="post" onsubmit="return confirm('Delete this task?');">
-                                                    <button type="submit" class="dropdown-item text-danger">Delete</button>
-                                                </form>
+                                                <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@task.Id">Delete</a>
                                             </li>
                                         </ul>
                                     </div>

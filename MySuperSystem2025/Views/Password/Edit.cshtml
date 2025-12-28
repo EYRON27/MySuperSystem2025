@@ -35,20 +35,13 @@
 
                     <div class="alert alert-warning">
                         <i class="bi bi-info-circle me-2"></i>
-                        Leave the password fields blank to keep the current password.
+                        Leave the password field blank to keep the current password.
                     </div>
 
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="NewPassword" class="form-label">New Password</label>
-                            <input asp-for="NewPassword" class="form-control" minlength="8" placeholder="Leave blank to keep current" />
-                            <span asp-validation-for="NewPassword" class="text-danger small"></span>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label asp-for="ConfirmNewPassword" class="form-label">Confirm New Password</label>
-                            <input asp-for="ConfirmNewPassword" class="form-control" placeholder="Confirm new password" />
-                            <span asp-validation-for="ConfirmNewPassword" class="text-danger small"></span>
-                        </div>
+                    <div class="mb-3">
+                        <label asp-for="NewPassword" class="form-label">New Password</label>
+                        <input asp-for="NewPassword" class="form-control" minlength="8" placeholder="Leave blank to keep current" />
+                        <span asp-validation-for="NewPassword" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">

@@ -13,9 +13,10 @@
             --sidebar-width: 250px;
         }
         html, body {
-            height: 100%;
+            height: 100vh;
             margin: 0;
             padding: 0;
+            overflow: hidden;
         }
         .sidebar {
             width: var(--sidebar-width);
@@ -25,6 +26,7 @@
             left: 0;
             top: 0;
             overflow-y: auto;
+            z-index: 1000;
         }
         .sidebar .nav-link {
             color: rgba(255,255,255,0.8);
@@ -43,14 +45,19 @@
         }
         .main-content {
             margin-left: var(--sidebar-width);
-            min-height: 100vh;
+            height: 100vh;
             display: flex;
             flex-direction: column;
             background-color: #f8f9fa;
+            overflow: hidden;
         }
         .navbar-top {
             background: #fff;
             box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            flex-shrink: 0;
         }
         .card {
             border: none;
@@ -97,6 +104,9 @@
         }
         main {
             flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0;
         }
         .footer {
             background: #fff;
@@ -105,6 +115,7 @@
             text-align: center;
             color: #495057;
             font-weight: 500;
+            flex-shrink: 0;
         }
     </style>
 </head>
@@ -113,9 +124,10 @@
     {
         <!-- Sidebar -->
         <nav class="sidebar d-flex flex-column">
-            <a asp-controller="Dashboard" asp-action="Index" class="brand-logo">
-                <i class="bi bi-grid-3x3-gap-fill me-2"></i>MySuperSystem
-            </a>
+                <a asp-controller="Dashboard" asp-action="Index" class="brand-logo d-flex align-items-center">
+                    <img src="~/Picture/aarvievewatermark.png" alt="Logo" style="width:32px;height:32px;object-fit:contain;border-radius:4px;" class="me-2" />
+                    <span>MySuperSystem</span>
+                </a>
             <ul class="nav flex-column flex-grow-1">
                 <li class="nav-item">
                     <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
@@ -178,7 +190,10 @@
             </main>
             <footer class="footer">
                 <div class="container-fluid">
-                    <p class="mb-0">Aarvieve Supersystem 2025</p>
+                    <p class="mb-0">
+                        <img src="~/Picture/aarvievewatermark.png" alt="Aarvieve" style="width:24px;height:24px;object-fit:contain;margin-right:8px;" class="align-middle" />
+                        Aarvieve Supersystem 2025
+                    </p>
                 </div>
             </footer>
         </div>

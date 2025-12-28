@@ -29,12 +29,6 @@ namespace MySuperSystem2025.Models.ViewModels.Password
         [Display(Name = "Password")]
         public string Password { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Please confirm the password")]
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm Password")]
-        [Compare("Password", ErrorMessage = "Passwords do not match")]
-        public string ConfirmPassword { get; set; } = string.Empty;
-
         [Required(ErrorMessage = "Category is required")]
         [Display(Name = "Category")]
         public int CategoryId { get; set; }
@@ -72,11 +66,6 @@ namespace MySuperSystem2025.Models.ViewModels.Password
         [DataType(DataType.Password)]
         [Display(Name = "New Password (leave blank to keep current)")]
         public string? NewPassword { get; set; }
-
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm New Password")]
-        [Compare("NewPassword", ErrorMessage = "Passwords do not match")]
-        public string? ConfirmNewPassword { get; set; }
 
         [Required(ErrorMessage = "Category is required")]
         [Display(Name = "Category")]

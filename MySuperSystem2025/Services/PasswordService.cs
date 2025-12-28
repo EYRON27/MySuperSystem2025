@@ -77,6 +77,17 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
+        /// Gets a password for display purposes (masked)
+        /// </summary>
+        public async Task<PasswordListItemViewModel?> GetPasswordForDisplayAsync(int id, string userId)
+        {
+            var password = await _unitOfWork.Passwords.GetPasswordWithCategoryAsync(id, userId);
+            if (password == null) return null;
+
+            return MapToListItem(password);
+        }
+
+        /// <summary>
         /// Creates a new stored password (encrypts the password)
         /// </summary>
         public async Task<bool> CreatePasswordAsync(CreatePasswordViewModel model, string userId)
@@ -228,6 +239,24 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
+        /// Gets category details for display/deletion
+        /// </summary>
+        public async Task<PasswordCategoryViewModel?> GetCategoryDetailsAsync(int id, string userId)
+        {
+            var category = await _unitOfWork.PasswordCategories.GetCategoryWithPasswordsAsync(id, userId);
+            if (category == null) return null;
+
+            return new PasswordCategoryViewModel
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Description = category.Description,
+                IsDefault = category.IsDefault,
+                PasswordCount = category.StoredPasswords.Count
+            };
+        }
+
+        /// <summary>
         /// Creates a new password category
         /// </summary>
         public async Task<bool> CreateCategoryAsync(CreatePasswordCategoryViewModel model, string userId)
@@ -294,7 +323,7 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
-        /// Soft deletes a password category
+        /// Soft deletes a password category (allows deletion even with passwords)
         /// </summary>
         public async Task<bool> DeleteCategoryAsync(int id, string userId)
         {
@@ -302,18 +331,6 @@ namespace MySuperSystem2025.Services
             {
                 var category = await _unitOfWork.PasswordCategories.GetCategoryWithPasswordsAsync(id, userId);
                 if (category == null) return false;
-
-                if (category.IsDefault)
-                {
-                    _logger.LogWarning("Cannot delete default password category {CategoryId}", id);
-                    return false;
-                }
-
-                if (category.StoredPasswords.Any())
-                {
-                    _logger.LogWarning("Cannot delete password category {CategoryId} with existing passwords", id);
-                    return false;
-                }
 
                 category.IsDeleted = true;
                 category.DeletedAt = DateTime.UtcNow;

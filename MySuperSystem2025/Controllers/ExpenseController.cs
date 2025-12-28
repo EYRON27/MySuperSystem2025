@@ -131,10 +131,29 @@ namespace MySuperSystem2025.Controllers
             return View(model);
         }
 
-        // POST: /Expense/Delete/5
+        // GET: /Expense/Delete/5
+        [HttpGet]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var expense = await _expenseService.GetExpenseForEditAsync(id, UserId);
+            if (expense == null)
+            {
+                return NotFound();
+            }
+
+            var expenseItem = await _expenseService.GetExpenseDetailsAsync(id, UserId);
+            if (expenseItem == null)
+            {
+                return NotFound();
+            }
+
+            return View(expenseItem);
+        }
+
+        // POST: /Expense/DeleteConfirmed/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var result = await _expenseService.DeleteExpenseAsync(id, UserId);
             if (result)
@@ -223,10 +242,29 @@ namespace MySuperSystem2025.Controllers
             return View(model);
         }
 
-        // POST: /Expense/DeleteCategory/5
+        // GET: /Expense/DeleteCategory/5
+        [HttpGet]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            var category = await _expenseService.GetCategoryForEditAsync(id, UserId);
+            if (category == null)
+            {
+                return NotFound();
+            }
+
+            var categoryViewModel = await _expenseService.GetCategoryDetailsAsync(id, UserId);
+            if (categoryViewModel == null)
+            {
+                return NotFound();
+            }
+
+            return View(categoryViewModel);
+        }
+
+        // POST: /Expense/DeleteCategoryConfirmed/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteCategory(int id)
+        public async Task<IActionResult> DeleteCategoryConfirmed(int id)
         {
             var result = await _expenseService.DeleteCategoryAsync(id, UserId);
             if (result)
@@ -235,7 +273,7 @@ namespace MySuperSystem2025.Controllers
             }
             else
             {
-                TempData["Error"] = "Cannot delete this category. It may be a default category or have expenses associated.";
+                TempData["Error"] = "Cannot delete this category. It may have expenses associated.";
             }
 
             return RedirectToAction(nameof(Categories));

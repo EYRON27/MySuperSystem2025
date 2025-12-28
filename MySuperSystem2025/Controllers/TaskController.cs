@@ -134,10 +134,23 @@ namespace MySuperSystem2025.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // POST: /Task/Delete/5
+        // GET: /Task/Delete/5
+        [HttpGet]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var task = await _taskService.GetTaskForEditAsync(id, UserId);
+            if (task == null)
+            {
+                return NotFound();
+            }
+
+            return View(task);
+        }
+
+        // POST: /Task/DeleteConfirmed/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var result = await _taskService.DeleteTaskAsync(id, UserId);
             if (result)

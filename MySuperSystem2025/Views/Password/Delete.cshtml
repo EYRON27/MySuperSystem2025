@@ -1,0 +1,71 @@
+@model MySuperSystem2025.Models.ViewModels.Password.PasswordListItemViewModel
+@{
+    ViewData["Title"] = "Delete Password";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <i class="bi bi-exclamation-triangle me-2"></i>Confirm Delete
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+
+                <h5 class="mb-3">Are you sure you want to delete this password?</h5>
+
+                <div class="card bg-light mb-4">
+                    <div class="card-body">
+                        <div class="row mb-2">
+                            <div class="col-4 fw-bold">Website/App:</div>
+                            <div class="col-8">@Model.WebsiteOrAppName</div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(Model.WebsiteUrl))
+                        {
+                            <div class="row mb-2">
+                                <div class="col-4 fw-bold">URL:</div>
+                                <div class="col-8">
+                                    <a href="@Model.WebsiteUrl" target="_blank" class="text-decoration-none">
+                                        <i class="bi bi-box-arrow-up-right me-1"></i>@Model.WebsiteUrl
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                        <div class="row mb-2">
+                            <div class="col-4 fw-bold">Username:</div>
+                            <div class="col-8">@Model.Username</div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-4 fw-bold">Password:</div>
+                            <div class="col-8"><span class="text-muted">@Model.MaskedPassword</span></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-4 fw-bold">Category:</div>
+                            <div class="col-8"><span class="badge bg-secondary">@Model.CategoryName</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="bi bi-shield-lock me-2"></i>
+                    <strong>Security Note:</strong> The encrypted password will be permanently removed from secure storage.
+                </div>
+
+                <div class="d-flex gap-2 justify-content-end">
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="bi bi-x-circle me-1"></i>Cancel
+                    </a>
+                    <form asp-action="DeleteConfirmed" asp-route-id="@Model.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash me-1"></i>Delete Password
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

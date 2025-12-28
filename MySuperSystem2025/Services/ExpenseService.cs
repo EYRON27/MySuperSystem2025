@@ -147,6 +147,17 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
+        /// Gets expense details for display/deletion
+        /// </summary>
+        public async Task<ExpenseListItemViewModel?> GetExpenseDetailsAsync(int id, string userId)
+        {
+            var expense = await _unitOfWork.Expenses.GetExpenseWithCategoryAsync(id, userId);
+            if (expense == null) return null;
+
+            return MapToListItem(expense);
+        }
+
+        /// <summary>
         /// Creates a new expense
         /// </summary>
         public async Task<bool> CreateExpenseAsync(CreateExpenseViewModel model, string userId)
@@ -278,6 +289,24 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
+        /// Gets category details for display/deletion
+        /// </summary>
+        public async Task<ExpenseCategoryViewModel?> GetCategoryDetailsAsync(int id, string userId)
+        {
+            var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(id, userId);
+            if (category == null) return null;
+
+            return new ExpenseCategoryViewModel
+            {
+                Id = category.Id,
+                Name = category.Name,
+                Description = category.Description,
+                IsDefault = category.IsDefault,
+                ExpenseCount = category.Expenses.Count
+            };
+        }
+
+        /// <summary>
         /// Creates a new expense category
         /// </summary>
         public async Task<bool> CreateCategoryAsync(CreateExpenseCategoryViewModel model, string userId)
@@ -346,7 +375,7 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
-        /// Soft deletes an expense category (only if no expenses are associated)
+        /// Soft deletes an expense category (allows deletion even with expenses)
         /// </summary>
         public async Task<bool> DeleteCategoryAsync(int id, string userId)
         {
@@ -354,20 +383,6 @@ namespace MySuperSystem2025.Services
             {
                 var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(id, userId);
                 if (category == null) return false;
-
-                // Cannot delete default categories
-                if (category.IsDefault)
-                {
-                    _logger.LogWarning("Cannot delete default category {CategoryId}", id);
-                    return false;
-                }
-
-                // Cannot delete if expenses exist
-                if (category.Expenses.Any())
-                {
-                    _logger.LogWarning("Cannot delete category {CategoryId} with existing expenses", id);
-                    return false;
-                }
 
                 category.IsDeleted = true;
                 category.DeletedAt = DateTime.UtcNow;

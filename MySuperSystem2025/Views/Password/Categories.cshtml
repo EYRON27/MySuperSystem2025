@@ -51,14 +51,9 @@
                                     <a asp-action="EditCategory" asp-route-id="@category.Id" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil"></i>
                                     </a>
-                                    @if (!category.IsDefault && category.PasswordCount == 0)
-                                    {
-                                        <form asp-action="DeleteCategory" asp-route-id="@category.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure?');">
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    }
+                                    <a asp-action="DeleteCategory" asp-route-id="@category.Id" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
                                 </td>
                             </tr>
                         }
