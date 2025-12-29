@@ -51,7 +51,7 @@
 <!-- Summary -->
 <div class="alert alert-info">
     <i class="bi bi-info-circle me-2"></i>
-    Showing <strong>@Model.TotalCount</strong> expenses totaling <strong>?@Model.TotalAmount.ToString("N2")</strong>
+    Showing <strong>@Model.TotalCount</strong> expenses totaling <strong>&#8369;@Model.TotalAmount.ToString("N2")</strong>
 </div>
 
 <!-- Expenses Table -->
@@ -77,7 +77,7 @@
                                 <td>@expense.Date.ToString("MMM dd, yyyy")</td>
                                 <td><span class="badge bg-secondary">@expense.CategoryName</span></td>
                                 <td>@expense.Reason</td>
-                                <td class="text-end fw-bold">?@expense.Amount.ToString("N2")</td>
+                                <td class="text-end fw-bold">&#8369;@expense.Amount.ToString("N2")</td>
                                 <td class="text-center">
                                     <a asp-action="Edit" asp-route-id="@expense.Id" class="btn btn-sm btn-outline-primary">
                                         <i class="bi bi-pencil"></i>

@@ -180,5 +180,162 @@ namespace MySuperSystem2025.Controllers
         {
             return View();
         }
+
+        // GET: /Account/Settings
+        [HttpGet]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        public async Task<IActionResult> Settings()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login");
+            }
+
+            var model = new SettingsViewModel
+            {
+                Profile = new ProfileSettingsViewModel
+                {
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    UserName = user.UserName ?? string.Empty,
+                    Email = user.Email ?? string.Empty,
+                    CreatedAt = user.CreatedAt,
+                    LastLoginAt = user.LastLoginAt
+                }
+            };
+
+            return View(model);
+        }
+
+        // POST: /Account/UpdateProfile
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        public async Task<IActionResult> UpdateProfile(ProfileSettingsViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var settings = new SettingsViewModel { Profile = model };
+                return View("Settings", settings);
+            }
+
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null)
+            {
+                return RedirectToAction("Login");
+            }
+
+            // Check if username is changed and unique
+            if (user.UserName != model.UserName)
+            {
+                var existingUser = await _userManager.FindByNameAsync(model.UserName);
+                if (existingUser != null)
+                {
+                    ModelState.AddModelError("Profile.UserName", "Username is already taken.");
+                    var settings = new SettingsViewModel { Profile = model };
+                    return View("Settings", settings);
+                }
+                user.UserName = model.UserName;
+            }
+
+            // Check if email is changed and unique
+            if (user.Email != model.Email)
+            {
+                var existingEmail = await _userManager.FindByEmailAsync(model.Email);
+                if (existingEmail != null)
+                {
+                    ModelState.AddModelError("Profile.Email", "Email is already registered.");
+                    var settings = new SettingsViewModel { Profile = model };
+                    return View("Settings", settings);
+                }
+                user.Email = model.Email;
+            }
+
+            user.FirstName = model.FirstName;
+            user.LastName = model.LastName;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                TempData["Success"] = "Profile updated successfully.";
+                _logger.LogInformation("User {Email} updated profile", user.Email);
+                return RedirectToAction("Settings");
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, error.Description);
+            }
+
+            var settingsModel = new SettingsViewModel { Profile = model };
+            return View("Settings", settingsModel);
+        }
+
+        // POST: /Account/ChangePassword
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        public async Task<IActionResult> ChangePassword(ChangePasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null)
+                {
+                    return RedirectToAction("Login");
+                }
+
+                var settings = new SettingsViewModel
+                {
+                    Profile = new ProfileSettingsViewModel
+                    {
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
+                        UserName = user.UserName ?? string.Empty,
+                        Email = user.Email ?? string.Empty,
+                        CreatedAt = user.CreatedAt,
+                        LastLoginAt = user.LastLoginAt
+                    },
+                    ChangePassword = model
+                };
+                return View("Settings", settings);
+            }
+
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+            {
+                return RedirectToAction("Login");
+            }
+
+            var result = await _userManager.ChangePasswordAsync(currentUser, model.CurrentPassword, model.NewPassword);
+            if (result.Succeeded)
+            {
+                await _signInManager.RefreshSignInAsync(currentUser);
+                TempData["Success"] = "Password changed successfully.";
+                _logger.LogInformation("User {Email} changed password", currentUser.Email);
+                return RedirectToAction("Settings");
+            }
+
+            foreach (var error in result.Errors)
+            {
+                ModelState.AddModelError("ChangePassword." + (error.Code.Contains("Password") ? "CurrentPassword" : string.Empty), error.Description);
+            }
+
+            var settingsViewModel = new SettingsViewModel
+            {
+                Profile = new ProfileSettingsViewModel
+                {
+                    FirstName = currentUser.FirstName,
+                    LastName = currentUser.LastName,
+                    UserName = currentUser.UserName ?? string.Empty,
+                    Email = currentUser.Email ?? string.Empty,
+                    CreatedAt = currentUser.CreatedAt,
+                    LastLoginAt = currentUser.LastLoginAt
+                },
+                ChangePassword = model
+            };
+            return View("Settings", settingsViewModel);
+        }
     }
 }

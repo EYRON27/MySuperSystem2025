@@ -1,0 +1,151 @@
+@model MySuperSystem2025.Models.ViewModels.Account.SettingsViewModel
+@{
+    ViewData["Title"] = "Settings";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0 fw-bold"><i class="bi bi-gear me-2"></i>Account Settings</h1>
+</div>
+
+<div class="row">
+    <!-- Profile Settings -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-person me-2"></i>Profile Information
+            </div>
+            <div class="card-body">
+                <form asp-action="UpdateProfile" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Profile.FirstName" class="form-label"></label>
+                            <input asp-for="Profile.FirstName" class="form-control" />
+                            <span asp-validation-for="Profile.FirstName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="Profile.LastName" class="form-label"></label>
+                            <input asp-for="Profile.LastName" class="form-control" />
+                            <span asp-validation-for="Profile.LastName" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Profile.UserName" class="form-label"></label>
+                        <input asp-for="Profile.UserName" class="form-control" />
+                        <span asp-validation-for="Profile.UserName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Profile.Email" class="form-label"></label>
+                        <input asp-for="Profile.Email" class="form-control" type="email" />
+                        <span asp-validation-for="Profile.Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <div class="mb-1">
+                            <strong>Account Created:</strong> @Model.Profile.CreatedAt.ToString("MMM dd, yyyy")
+                        </div>
+                        @if (Model.Profile.LastLoginAt.HasValue)
+                        {
+                            <div>
+                                <strong>Last Login:</strong> @Model.Profile.LastLoginAt.Value.ToString("MMM dd, yyyy hh:mm tt")
+                            </div>
+                        }
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-1"></i>Update Profile
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password -->
+    <div class="col-lg-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-lock me-2"></i>Change Password
+            </div>
+            <div class="card-body">
+                <form asp-action="ChangePassword" method="post">
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="ChangePassword.CurrentPassword" class="form-label"></label>
+                        <input asp-for="ChangePassword.CurrentPassword" class="form-control" />
+                        <span asp-validation-for="ChangePassword.CurrentPassword" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="ChangePassword.NewPassword" class="form-label"></label>
+                        <input asp-for="ChangePassword.NewPassword" class="form-control" />
+                        <span asp-validation-for="ChangePassword.NewPassword" class="text-danger small"></span>
+                        <small class="text-muted">Minimum 8 characters, 1 uppercase, 1 number, 1 special character</small>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="ChangePassword.ConfirmPassword" class="form-label"></label>
+                        <input asp-for="ChangePassword.ConfirmPassword" class="form-control" />
+                        <span asp-validation-for="ChangePassword.ConfirmPassword" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-key me-1"></i>Change Password
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Additional Settings Cards -->
+<div class="row">
+    <div class="col-lg-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle me-2"></i>Account Information
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-1">Expenses</h6>
+                            <p class="mb-0">
+                                <a asp-controller="Expense" asp-action="Index" class="text-decoration-none">
+                                    <i class="bi bi-wallet2 me-1"></i>Manage Expenses
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-1">Tasks</h6>
+                            <p class="mb-0">
+                                <a asp-controller="Task" asp-action="Index" class="text-decoration-none">
+                                    <i class="bi bi-check2-square me-1"></i>Manage Tasks
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <h6 class="text-muted mb-1">Passwords</h6>
+                            <p class="mb-0">
+                                <a asp-controller="Password" asp-action="Index" class="text-decoration-none">
+                                    <i class="bi bi-shield-lock me-1"></i>Manage Passwords
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
