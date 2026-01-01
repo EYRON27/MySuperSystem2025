@@ -311,15 +311,26 @@ namespace MySuperSystem2025.Controllers
             var result = await _userManager.ChangePasswordAsync(currentUser, model.CurrentPassword, model.NewPassword);
             if (result.Succeeded)
             {
-                await _signInManager.RefreshSignInAsync(currentUser);
-                TempData["Success"] = "Password changed successfully.";
-                _logger.LogInformation("User {Email} changed password", currentUser.Email);
-                return RedirectToAction("Settings");
+                _logger.LogInformation("User {Email} changed password successfully", currentUser.Email);
+                
+                // Sign out the user after password change for security
+                await _signInManager.SignOutAsync();
+                
+                TempData["Success"] = "Password changed successfully. Please login with your new password.";
+                return RedirectToAction("Login");
             }
 
             foreach (var error in result.Errors)
             {
-                ModelState.AddModelError("ChangePassword." + (error.Code.Contains("Password") ? "CurrentPassword" : string.Empty), error.Description);
+                // Handle specific password errors
+                if (error.Code == "PasswordMismatch")
+                {
+                    ModelState.AddModelError("ChangePassword.CurrentPassword", "Current password is incorrect.");
+                }
+                else
+                {
+                    ModelState.AddModelError("ChangePassword.NewPassword", error.Description);
+                }
             }
 
             var settingsViewModel = new SettingsViewModel

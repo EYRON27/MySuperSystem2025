@@ -18,7 +18,7 @@
                     @if (Model.IsDefault)
                     {
                         <div class="alert alert-info">
-                            <i class="bi bi-info-circle me-2"></i>This is a default category. You can only edit its name and description.
+                            <i class="bi bi-info-circle me-2"></i>This is a default category. You can edit its name, description, and budget.
                         </div>
                     }
 
@@ -28,11 +28,44 @@
                         <span asp-validation-for="Name" class="text-danger small"></span>
                     </div>
 
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label asp-for="Description" class="form-label">Description (Optional)</label>
                         <textarea asp-for="Description" class="form-control" rows="3" maxlength="200"></textarea>
                         <span asp-validation-for="Description" class="text-danger small"></span>
                     </div>
+
+                    <div class="mb-3">
+                        <label asp-for="BudgetAmount" class="form-label">Budget Amount (&#8369;)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">&#8369;</span>
+                            <input asp-for="BudgetAmount" class="form-control" type="number" step="0.01" min="0" />
+                        </div>
+                        <span asp-validation-for="BudgetAmount" class="text-danger small"></span>
+                        <small class="text-muted">Set your total money/budget for this category. Set 0 for unlimited tracking.</small>
+                    </div>
+
+                    @if (Model.BudgetAmount > 0)
+                    {
+                        <div class="alert @(Model.RemainingAmount <= Model.BudgetAmount * 0.2m ? "alert-warning" : "alert-success")">
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Total Spent:</strong><br />
+                                    <span class="text-danger">&#8369;@Model.TotalExpenses.ToString("N2")</span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Remaining:</strong><br />
+                                    <span class="@(Model.RemainingAmount <= Model.BudgetAmount * 0.2m ? "text-warning fw-bold" : "text-success")">
+                                        &#8369;@Model.RemainingAmount.ToString("N2")
+                                    </span>
+                                </div>
+                            </div>
+                            @if (Model.RemainingAmount <= Model.BudgetAmount * 0.2m)
+                            {
+                                <hr />
+                                <small><i class="bi bi-exclamation-triangle me-1"></i>Low balance warning!</small>
+                            }
+                        </div>
+                    }
 
                     <div class="d-flex gap-2">
                         <button type="submit" class="btn btn-primary">

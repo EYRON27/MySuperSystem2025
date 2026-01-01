@@ -7,6 +7,7 @@ namespace MySuperSystem2025.Services
 {
     /// <summary>
     /// Expense service implementation handling all expense-related business logic
+    /// with balance tracking functionality
     /// </summary>
     public class ExpenseService : IExpenseService
     {
@@ -20,9 +21,9 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
-        /// Gets dashboard data with expense summaries
+        /// Gets dashboard data with expense summaries and balance tracking
         /// </summary>
-        public async Task<ExpenseDashboardViewModel> GetDashboardAsync(string userId)
+        public async Task<ExpenseDashboardViewModel> GetDashboardAsync(string userId, string? breakdownPeriod = null)
         {
             var today = DateTime.Today;
             var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
@@ -31,44 +32,90 @@ namespace MySuperSystem2025.Services
 
             var allExpenses = await _unitOfWork.Expenses.GetUserExpensesAsync(userId);
             var expensesList = allExpenses.ToList();
+            var categories = await _unitOfWork.ExpenseCategories.GetUserCategoriesAsync(userId);
+            var categoriesList = categories.ToList();
 
             var todayExpenses = expensesList.Where(e => e.Date.Date == today).ToList();
             var weeklyExpenses = expensesList.Where(e => e.Date >= startOfWeek && e.Date <= today).ToList();
             var monthlyExpenses = expensesList.Where(e => e.Date >= startOfMonth && e.Date <= today).ToList();
             var yearlyExpenses = expensesList.Where(e => e.Date >= startOfYear && e.Date <= today).ToList();
 
-            // Category breakdown for monthly expenses
-            var categoryBreakdown = monthlyExpenses
-                .GroupBy(e => e.Category?.Name ?? "Uncategorized")
+            // Category breakdown based on selected period
+            List<Expense> breakdownExpenses;
+            string breakdownPeriodName;
+            
+            switch (breakdownPeriod?.ToLower())
+            {
+                case "daily":
+                    breakdownExpenses = todayExpenses;
+                    breakdownPeriodName = "Today";
+                    break;
+                case "weekly":
+                    breakdownExpenses = weeklyExpenses;
+                    breakdownPeriodName = "This Week";
+                    break;
+                case "yearly":
+                    breakdownExpenses = yearlyExpenses;
+                    breakdownPeriodName = "This Year";
+                    break;
+                case "alltime":
+                    breakdownExpenses = expensesList;
+                    breakdownPeriodName = "All Time";
+                    break;
+                case "monthly":
+                default:
+                    breakdownExpenses = monthlyExpenses;
+                    breakdownPeriodName = "This Month";
+                    break;
+            }
+
+            var categoryBreakdown = breakdownExpenses
+                .GroupBy(e => new { e.CategoryId, Name = e.Category?.Name ?? "Uncategorized" })
                 .Select(g => new CategorySummaryViewModel
                 {
-                    CategoryName = g.Key,
+                    CategoryId = g.Key.CategoryId,
+                    CategoryName = g.Key.Name,
                     Total = g.Sum(e => e.Amount),
                     Count = g.Count()
                 })
                 .OrderByDescending(c => c.Total)
                 .ToList();
 
-            var monthlyTotal = monthlyExpenses.Sum(e => e.Amount);
+            var breakdownTotal = breakdownExpenses.Sum(e => e.Amount);
             foreach (var category in categoryBreakdown)
             {
-                category.Percentage = monthlyTotal > 0 
-                    ? Math.Round((category.Total / monthlyTotal) * 100, 1) 
+                category.Percentage = breakdownTotal > 0 
+                    ? Math.Round((category.Total / breakdownTotal) * 100, 1) 
                     : 0;
             }
+
+            // Category balance cards
+            var categoryBalances = categoriesList.Select(c => new CategoryBalanceViewModel
+            {
+                CategoryId = c.Id,
+                CategoryName = c.Name,
+                BudgetAmount = c.BudgetAmount,
+                RemainingAmount = c.RemainingAmount
+            }).ToList();
 
             return new ExpenseDashboardViewModel
             {
                 TodayTotal = todayExpenses.Sum(e => e.Amount),
                 WeeklyTotal = weeklyExpenses.Sum(e => e.Amount),
-                MonthlyTotal = monthlyTotal,
+                MonthlyTotal = monthlyExpenses.Sum(e => e.Amount),
                 YearlyTotal = yearlyExpenses.Sum(e => e.Amount),
                 TodayCount = todayExpenses.Count,
                 WeeklyCount = weeklyExpenses.Count,
                 MonthlyCount = monthlyExpenses.Count,
                 YearlyCount = yearlyExpenses.Count,
+                TotalBudget = categoriesList.Sum(c => c.BudgetAmount),
+                TotalRemainingBalance = categoriesList.Sum(c => c.RemainingAmount),
+                TotalExpenses = expensesList.Sum(e => e.Amount),
                 RecentExpenses = expensesList.Take(10).Select(MapToListItem).ToList(),
-                CategoryBreakdown = categoryBreakdown
+                CategoryBreakdown = categoryBreakdown,
+                CategoryBalances = categoryBalances,
+                BreakdownPeriod = breakdownPeriod ?? "monthly",
+                BreakdownPeriodName = breakdownPeriodName
             };
         }
 
@@ -158,7 +205,7 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
-        /// Creates a new expense
+        /// Creates a new expense and deducts from category balance
         /// </summary>
         public async Task<bool> CreateExpenseAsync(CreateExpenseViewModel model, string userId)
         {
@@ -171,6 +218,21 @@ namespace MySuperSystem2025.Services
                     return false;
                 }
 
+                // Get the category to check and update balance
+                var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(model.CategoryId, userId);
+                if (category == null)
+                {
+                    _logger.LogWarning("Category not found for expense creation");
+                    return false;
+                }
+
+                // Check if there's sufficient balance (only if budget is set)
+                if (category.BudgetAmount > 0 && category.RemainingAmount < model.Amount)
+                {
+                    _logger.LogWarning("Insufficient balance in category {CategoryId} for expense amount {Amount}", model.CategoryId, model.Amount);
+                    return false;
+                }
+
                 var expense = new Expense
                 {
                     Amount = model.Amount,
@@ -180,10 +242,14 @@ namespace MySuperSystem2025.Services
                     UserId = userId
                 };
 
+                // Deduct from category balance (ALWAYS track, even if no budget set)
+                category.RemainingAmount -= model.Amount;
+                _unitOfWork.ExpenseCategories.Update(category);
+
                 await _unitOfWork.Expenses.AddAsync(expense);
                 await _unitOfWork.SaveChangesAsync();
 
-                _logger.LogInformation("Expense created successfully for user {UserId}", userId);
+                _logger.LogInformation("Expense created successfully for user {UserId}, amount deducted from category {CategoryId}", userId, model.CategoryId);
                 return true;
             }
             catch (Exception ex)
@@ -194,7 +260,7 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
-        /// Updates an existing expense
+        /// Updates an existing expense and adjusts category balance accordingly
         /// </summary>
         public async Task<bool> UpdateExpenseAsync(EditExpenseViewModel model, string userId)
         {
@@ -208,6 +274,56 @@ namespace MySuperSystem2025.Services
                 {
                     _logger.LogWarning("Attempted to update expense with future date");
                     return false;
+                }
+
+                var oldAmount = expense.Amount;
+                var oldCategoryId = expense.CategoryId;
+                var amountDifference = model.Amount - oldAmount;
+
+                // Handle category change or amount change
+                if (oldCategoryId != model.CategoryId)
+                {
+                    // Refund old category (ALWAYS refund, not just when budget > 0)
+                    var oldCategory = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(oldCategoryId, userId);
+                    if (oldCategory != null)
+                    {
+                        oldCategory.RemainingAmount += oldAmount;
+                        _unitOfWork.ExpenseCategories.Update(oldCategory);
+                    }
+
+                    // Deduct from new category
+                    var newCategory = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(model.CategoryId, userId);
+                    if (newCategory == null)
+                    {
+                        _logger.LogWarning("New category not found for expense update");
+                        return false;
+                    }
+
+                    // Check balance only if budget is set
+                    if (newCategory.BudgetAmount > 0 && newCategory.RemainingAmount < model.Amount)
+                    {
+                        _logger.LogWarning("Insufficient balance in new category {CategoryId}", model.CategoryId);
+                        return false;
+                    }
+                    
+                    newCategory.RemainingAmount -= model.Amount;
+                    _unitOfWork.ExpenseCategories.Update(newCategory);
+                }
+                else if (amountDifference != 0)
+                {
+                    // Same category, different amount - adjust balance (ALWAYS adjust)
+                    var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(model.CategoryId, userId);
+                    if (category != null)
+                    {
+                        // Check balance only if budget is set AND amount is increasing
+                        if (category.BudgetAmount > 0 && amountDifference > 0 && category.RemainingAmount < amountDifference)
+                        {
+                            _logger.LogWarning("Insufficient balance for expense increase in category {CategoryId}", model.CategoryId);
+                            return false;
+                        }
+                        category.RemainingAmount -= amountDifference;
+                        _unitOfWork.ExpenseCategories.Update(category);
+                    }
                 }
 
                 expense.Amount = model.Amount;
@@ -229,7 +345,7 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
-        /// Soft deletes an expense
+        /// Soft deletes an expense and refunds the amount to category balance
         /// </summary>
         public async Task<bool> DeleteExpenseAsync(int id, string userId)
         {
@@ -238,6 +354,14 @@ namespace MySuperSystem2025.Services
                 var expense = await _unitOfWork.Expenses.GetExpenseWithCategoryAsync(id, userId);
                 if (expense == null) return false;
 
+                // Refund the amount to category balance (ALWAYS refund)
+                var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(expense.CategoryId, userId);
+                if (category != null)
+                {
+                    category.RemainingAmount += expense.Amount;
+                    _unitOfWork.ExpenseCategories.Update(category);
+                }
+
                 // Soft delete
                 expense.IsDeleted = true;
                 expense.DeletedAt = DateTime.UtcNow;
@@ -245,7 +369,7 @@ namespace MySuperSystem2025.Services
                 _unitOfWork.Expenses.Update(expense);
                 await _unitOfWork.SaveChangesAsync();
 
-                _logger.LogInformation("Expense {ExpenseId} deleted for user {UserId}", id, userId);
+                _logger.LogInformation("Expense {ExpenseId} deleted for user {UserId}, amount refunded to category", id, userId);
                 return true;
             }
             catch (Exception ex)
@@ -256,7 +380,7 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
-        /// Gets all categories for a user
+        /// Gets all categories for a user with balance information
         /// </summary>
         public async Task<List<ExpenseCategoryViewModel>> GetCategoriesAsync(string userId)
         {
@@ -267,12 +391,14 @@ namespace MySuperSystem2025.Services
                 Name = c.Name,
                 Description = c.Description,
                 IsDefault = c.IsDefault,
-                ExpenseCount = c.Expenses.Count
+                ExpenseCount = c.Expenses.Count,
+                BudgetAmount = c.BudgetAmount,
+                RemainingAmount = c.RemainingAmount
             }).ToList();
         }
 
         /// <summary>
-        /// Gets a category for editing
+        /// Gets a category for editing with balance info
         /// </summary>
         public async Task<EditExpenseCategoryViewModel?> GetCategoryForEditAsync(int id, string userId)
         {
@@ -284,7 +410,10 @@ namespace MySuperSystem2025.Services
                 Id = category.Id,
                 Name = category.Name,
                 Description = category.Description,
-                IsDefault = category.IsDefault
+                IsDefault = category.IsDefault,
+                BudgetAmount = category.BudgetAmount,
+                RemainingAmount = category.RemainingAmount,
+                TotalExpenses = category.BudgetAmount - category.RemainingAmount
             };
         }
 
@@ -302,12 +431,14 @@ namespace MySuperSystem2025.Services
                 Name = category.Name,
                 Description = category.Description,
                 IsDefault = category.IsDefault,
-                ExpenseCount = category.Expenses.Count
+                ExpenseCount = category.Expenses.Count,
+                BudgetAmount = category.BudgetAmount,
+                RemainingAmount = category.RemainingAmount
             };
         }
 
         /// <summary>
-        /// Creates a new expense category
+        /// Creates a new expense category with optional budget
         /// </summary>
         public async Task<bool> CreateCategoryAsync(CreateExpenseCategoryViewModel model, string userId)
         {
@@ -325,13 +456,15 @@ namespace MySuperSystem2025.Services
                     Name = model.Name,
                     Description = model.Description,
                     UserId = userId,
-                    IsDefault = false
+                    IsDefault = false,
+                    BudgetAmount = model.BudgetAmount,
+                    RemainingAmount = model.BudgetAmount // Initially, remaining = budget
                 };
 
                 await _unitOfWork.ExpenseCategories.AddAsync(category);
                 await _unitOfWork.SaveChangesAsync();
 
-                _logger.LogInformation("Expense category created for user {UserId}", userId);
+                _logger.LogInformation("Expense category created for user {UserId} with budget {Budget}", userId, model.BudgetAmount);
                 return true;
             }
             catch (Exception ex)
@@ -342,7 +475,7 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
-        /// Updates an expense category
+        /// Updates an expense category including budget adjustment
         /// </summary>
         public async Task<bool> UpdateCategoryAsync(EditExpenseCategoryViewModel model, string userId)
         {
@@ -358,8 +491,31 @@ namespace MySuperSystem2025.Services
                     return false;
                 }
 
+                // Calculate the current expenses (budget - remaining)
+                var currentExpenses = category.BudgetAmount - category.RemainingAmount;
+
+                // Update budget and recalculate remaining
+                var budgetDifference = model.BudgetAmount - category.BudgetAmount;
+
                 category.Name = model.Name;
                 category.Description = model.Description;
+                category.BudgetAmount = model.BudgetAmount;
+
+                // Adjust remaining amount based on budget change
+                // New remaining = new budget - current expenses
+                if (model.BudgetAmount > 0)
+                {
+                    category.RemainingAmount = model.BudgetAmount - currentExpenses;
+                    // Ensure remaining doesn't go below 0
+                    if (category.RemainingAmount < 0)
+                    {
+                        category.RemainingAmount = 0;
+                    }
+                }
+                else
+                {
+                    category.RemainingAmount = 0;
+                }
 
                 _unitOfWork.ExpenseCategories.Update(category);
                 await _unitOfWork.SaveChangesAsync();
@@ -407,9 +563,9 @@ namespace MySuperSystem2025.Services
         {
             var defaultCategories = new[]
             {
-                new ExpenseCategory { Name = "Business", Description = "Business related expenses", UserId = userId, IsDefault = true },
-                new ExpenseCategory { Name = "Personal", Description = "Personal expenses", UserId = userId, IsDefault = true },
-                new ExpenseCategory { Name = "Personal Business", Description = "Personal business expenses", UserId = userId, IsDefault = true }
+                new ExpenseCategory { Name = "Business", Description = "Business related expenses", UserId = userId, IsDefault = true, BudgetAmount = 0, RemainingAmount = 0 },
+                new ExpenseCategory { Name = "Personal", Description = "Personal expenses", UserId = userId, IsDefault = true, BudgetAmount = 0, RemainingAmount = 0 },
+                new ExpenseCategory { Name = "Personal Business", Description = "Personal business expenses", UserId = userId, IsDefault = true, BudgetAmount = 0, RemainingAmount = 0 }
             };
 
             foreach (var category in defaultCategories)
@@ -422,6 +578,42 @@ namespace MySuperSystem2025.Services
 
             await _unitOfWork.SaveChangesAsync();
             _logger.LogInformation("Default expense categories seeded for user {UserId}", userId);
+        }
+
+        /// <summary>
+        /// Sets budget for a category and calculates remaining based on existing expenses
+        /// </summary>
+        public async Task<bool> SetCategoryBudgetAsync(int categoryId, decimal budgetAmount, string userId)
+        {
+            try
+            {
+                var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(categoryId, userId);
+                if (category == null) return false;
+
+                // Calculate total expenses for this category
+                var totalExpenses = category.Expenses.Where(e => !e.IsDeleted).Sum(e => e.Amount);
+
+                category.BudgetAmount = budgetAmount;
+                category.RemainingAmount = budgetAmount - totalExpenses;
+
+                // Ensure remaining doesn't go below 0
+                if (category.RemainingAmount < 0)
+                {
+                    category.RemainingAmount = 0;
+                }
+
+                _unitOfWork.ExpenseCategories.Update(category);
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation("Budget set for category {CategoryId}: Budget={Budget}, Remaining={Remaining}", 
+                    categoryId, budgetAmount, category.RemainingAmount);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error setting budget for category {CategoryId}", categoryId);
+                return false;
+            }
         }
 
         private static ExpenseListItemViewModel MapToListItem(Expense expense)

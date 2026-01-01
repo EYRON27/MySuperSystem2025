@@ -25,9 +25,9 @@ namespace MySuperSystem2025.Controllers
         private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
         // GET: /Expense
-        public async Task<IActionResult> Index(string? period = null, int? categoryId = null)
+        public async Task<IActionResult> Index(string? period = null, int? categoryId = null, string? breakdown = null)
         {
-            var dashboard = await _expenseService.GetDashboardAsync(UserId);
+            var dashboard = await _expenseService.GetDashboardAsync(UserId, breakdown);
             return View(dashboard);
         }
 
@@ -75,7 +75,18 @@ namespace MySuperSystem2025.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            TempData["Error"] = "Failed to create expense.";
+            // Check if it's an insufficient balance error
+            var category = (await _expenseService.GetCategoriesAsync(UserId))
+                .FirstOrDefault(c => c.Id == model.CategoryId);
+            if (category != null && category.BudgetAmount > 0 && category.RemainingAmount < model.Amount)
+            {
+                TempData["Error"] = $"Insufficient balance in {category.Name}. Available: ?{category.RemainingAmount:N2}";
+            }
+            else
+            {
+                TempData["Error"] = "Failed to create expense.";
+            }
+            
             var cats = await _expenseService.GetCategoriesAsync(UserId);
             model.Categories = new SelectList(cats, "Id", "Name");
             return View(model);
@@ -125,7 +136,18 @@ namespace MySuperSystem2025.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            TempData["Error"] = "Failed to update expense.";
+            // Check if it's an insufficient balance error
+            var category = (await _expenseService.GetCategoriesAsync(UserId))
+                .FirstOrDefault(c => c.Id == model.CategoryId);
+            if (category != null && category.BudgetAmount > 0)
+            {
+                TempData["Error"] = $"Insufficient balance in {category.Name}. Available: ?{category.RemainingAmount:N2}";
+            }
+            else
+            {
+                TempData["Error"] = "Failed to update expense.";
+            }
+            
             var cats = await _expenseService.GetCategoriesAsync(UserId);
             model.Categories = new SelectList(cats, "Id", "Name");
             return View(model);

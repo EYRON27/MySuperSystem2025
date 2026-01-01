@@ -26,6 +26,8 @@
                             <th>Name</th>
                             <th>Description</th>
                             <th>Type</th>
+                            <th class="text-end">Budget</th>
+                            <th class="text-end">Remaining</th>
                             <th class="text-center">Expenses</th>
                             <th class="text-center">Actions</th>
                         </tr>
@@ -33,8 +35,14 @@
                     <tbody>
                         @foreach (var category in Model)
                         {
-                            <tr>
-                                <td class="fw-bold">@category.Name</td>
+                            <tr class="@(category.IsLowBalance ? "table-warning" : "")">
+                                <td class="fw-bold">
+                                    @category.Name
+                                    @if (category.IsLowBalance)
+                                    {
+                                        <span class="badge bg-warning text-dark ms-1"><i class="bi bi-exclamation-triangle"></i></span>
+                                    }
+                                </td>
                                 <td>@(category.Description ?? "—")</td>
                                 <td>
                                     @if (category.IsDefault)
@@ -44,6 +52,28 @@
                                     else
                                     {
                                         <span class="badge bg-secondary">Custom</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @if (category.BudgetAmount > 0)
+                                    {
+                                        <span class="text-primary">&#8369;@category.BudgetAmount.ToString("N2")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Not set</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @if (category.BudgetAmount > 0)
+                                    {
+                                        <span class="@(category.IsLowBalance ? "text-warning fw-bold" : "text-success")">
+                                            &#8369;@category.RemainingAmount.ToString("N2")
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
                                     }
                                 </td>
                                 <td class="text-center">@category.ExpenseCount</td>
