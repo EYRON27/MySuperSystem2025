@@ -6,6 +6,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0 fw-bold"><i class="bi bi-wallet2 me-2"></i>Expense Dashboard</h1>
     <div>
+        <a asp-action="ExportPdf" asp-route-breakdown="@Model.BreakdownPeriod" asp-route-month="@Model.SelectedMonth" class="btn btn-outline-danger me-2" title="Export to PDF">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
+        </a>
         <a asp-action="Categories" class="btn btn-outline-secondary me-2">
             <i class="bi bi-tags me-1"></i>Categories
         </a>
@@ -15,8 +18,97 @@
     </div>
 </div>
 
-<!-- Balance Overview Cards -->
-@if (Model.TotalBudget > 0)
+<!-- Monthly Filter Dropdown -->
+@if (Model.AvailableMonths.Any())
+{
+    <div class="card mb-4">
+        <div class="card-body py-2">
+            <form method="get" class="row align-items-center">
+                <div class="col-auto">
+                    <label class="col-form-label fw-bold"><i class="bi bi-calendar3 me-2"></i>Filter by Month:</label>
+                </div>
+                <div class="col-auto" style="min-width: 150px;">
+                    <!-- add extra right padding so native caret doesn't overlap text -->
+                    <select name="month" class="form-select pe-4" onchange="this.form.submit()">
+                        @foreach (var monthOption in Model.AvailableMonths)
+                        {
+                            <option value="@monthOption.Value" @(monthOption.IsSelected ? "selected" : "")>@monthOption.Display</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-x-circle me-1"></i>Reset to Current
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+<!-- Monthly Fixed Budget Summary -->
+@if (Model.TotalMonthlyFixedBudget > 0)
+{
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card stat-card border-primary">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-primary">Monthly Fixed Budget</h6>
+                            <h3 class="mb-0 fw-bold text-primary">&#8369;@Model.TotalMonthlyFixedBudget.ToString("N2")</h3>
+                            <small class="text-muted">Resets every month</small>
+                        </div>
+                        <i class="bi bi-calendar-check fs-1 text-primary opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card stat-card border-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 text-danger">Spent This Month</h6>
+                            <h3 class="mb-0 fw-bold text-danger">&#8369;@Model.SelectedMonthTotal.ToString("N2")</h3>
+                            <small class="text-muted">@Model.BreakdownPeriodName</small>
+                        </div>
+                        <i class="bi bi-credit-card fs-1 text-danger opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            @{
+                var isLowMonthlyBalance = Model.SelectedMonthRemaining <= Model.TotalMonthlyFixedBudget * 0.2m;
+            }
+            <div class="card stat-card @(isLowMonthlyBalance ? "border-warning bg-warning bg-opacity-10" : "border-success")">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1 @(isLowMonthlyBalance ? "text-warning" : "text-success")">Remaining This Month</h6>
+                            <h3 class="mb-0 fw-bold @(isLowMonthlyBalance ? "text-warning" : "text-success")">&#8369;@Model.SelectedMonthRemaining.ToString("N2")</h3>
+                            <small class="text-muted">
+                                @if (isLowMonthlyBalance)
+                                {
+                                    <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Low balance warning!</span>
+                                }
+                                else
+                                {
+                                    <span>Available to spend</span>
+                                }
+                            </small>
+                        </div>
+                        <i class="bi bi-wallet2 fs-1 @(isLowMonthlyBalance ? "text-warning" : "text-success") opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Balance Overview Cards (Legacy - for non-monthly budgets) -->
+@if (Model.TotalBudget > 0 && Model.TotalMonthlyFixedBudget == 0)
 {
     <div class="row g-4 mb-4">
         <div class="col-md-4">
@@ -74,33 +166,45 @@
 }
 
 <!-- Category Balance Cards -->
-@if (Model.CategoryBalances.Any(c => c.HasBudget))
+@if (Model.CategoryBalances.Any(c => c.HasBudget || c.HasMonthlyBudget))
 {
     <div class="card mb-4">
         <div class="card-header">
-            <i class="bi bi-graph-up me-2"></i>Category Balances
+            <i class="bi bi-graph-up me-2"></i>Category Balances - @Model.BreakdownPeriodName
         </div>
         <div class="card-body">
             <div class="row g-3">
-                @foreach (var category in Model.CategoryBalances.Where(c => c.HasBudget))
+                @foreach (var category in Model.CategoryBalances.Where(c => c.HasBudget || c.HasMonthlyBudget))
                 {
                     <div class="col-md-4">
                         <div class="card h-100 @(category.IsLowBalance ? "border-warning" : "")">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
                                     <h6 class="fw-bold mb-0">@category.CategoryName</h6>
-                                    @if (category.IsLowBalance)
-                                    {
-                                        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Low</span>
-                                    }
+                                    <div>
+                                        @if (category.HasMonthlyBudget)
+                                        {
+                                            <span class="badge bg-info me-1" title="Monthly Reset">
+                                                <i class="bi bi-arrow-repeat"></i>
+                                            </span>
+                                        }
+                                        @if (category.IsLowBalance)
+                                        {
+                                            <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Low</span>
+                                        }
+                                    </div>
                                 </div>
                                 <div class="mb-2">
                                     <small class="text-muted">Budget: &#8369;@category.BudgetAmount.ToString("N2")</small>
+                                    @if (category.HasMonthlyBudget)
+                                    {
+                                        <br/><small class="text-info"><i class="bi bi-arrow-repeat me-1"></i>Monthly: &#8369;@category.MonthlyFixedBudget.ToString("N2")</small>
+                                    }
                                 </div>
                                 <div class="progress mb-2" style="height: 10px;">
                                     <div class="progress-bar @(category.UsagePercentage > 80 ? "bg-danger" : category.UsagePercentage > 50 ? "bg-warning" : "bg-success")" 
                                          role="progressbar" 
-                                         style="width: @category.UsagePercentage%"
+                                         style="width: @Math.Min(category.UsagePercentage, 100)%"
                                          aria-valuenow="@category.UsagePercentage" 
                                          aria-valuemin="0" 
                                          aria-valuemax="100">

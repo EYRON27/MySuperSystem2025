@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MySuperSystem2025.Models.ViewModels.Task;
 using MySuperSystem2025.Services.Interfaces;
+using MySuperSystem2025.Services;
 using TaskStatus = MySuperSystem2025.Models.Domain.TaskStatus;
 
 namespace MySuperSystem2025.Controllers
@@ -15,11 +16,13 @@ namespace MySuperSystem2025.Controllers
     {
         private readonly ITaskService _taskService;
         private readonly ILogger<TaskController> _logger;
+        private readonly PdfService _pdfService;
 
-        public TaskController(ITaskService taskService, ILogger<TaskController> logger)
+        public TaskController(ITaskService taskService, ILogger<TaskController> logger, PdfService pdfService)
         {
             _taskService = taskService;
             _logger = logger;
+            _pdfService = pdfService;
         }
 
         private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -175,6 +178,15 @@ namespace MySuperSystem2025.Controllers
             }
 
             return View(task);
+        }
+
+        // GET: /Task/ExportPdf
+        public async Task<IActionResult> ExportPdf()
+        {
+            var dashboard = await _taskService.GetDashboardAsync(UserId);
+            var pdfBytes = _pdfService.GenerateTaskDashboardPdf(dashboard, User.Identity?.Name ?? "User");
+
+            return File(pdfBytes, "application/pdf", $"TaskReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
         }
     }
 }

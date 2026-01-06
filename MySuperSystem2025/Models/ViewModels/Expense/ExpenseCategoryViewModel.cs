@@ -24,6 +24,11 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         public decimal RemainingAmount { get; set; }
 
         /// <summary>
+        /// Fixed monthly budget that resets every month
+        /// </summary>
+        public decimal MonthlyFixedBudget { get; set; }
+
+        /// <summary>
         /// Total expenses (Budget - Remaining)
         /// </summary>
         public decimal TotalExpenses => BudgetAmount - RemainingAmount;
@@ -37,6 +42,11 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         /// Indicates if remaining balance is low (below 20%)
         /// </summary>
         public bool IsLowBalance => BudgetAmount > 0 && RemainingAmount <= (BudgetAmount * 0.2m);
+
+        /// <summary>
+        /// Indicates if this category has monthly fixed budget
+        /// </summary>
+        public bool HasMonthlyBudget => MonthlyFixedBudget > 0;
     }
 
     /// <summary>
@@ -55,8 +65,12 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         public string? Description { get; set; }
 
         [Range(0, double.MaxValue, ErrorMessage = "Budget amount must be a positive value")]
-        [Display(Name = "Budget Amount (?)")]
+        [Display(Name = "Initial Budget Amount (?)")]
         public decimal BudgetAmount { get; set; } = 0;
+
+        [Range(0, double.MaxValue, ErrorMessage = "Monthly budget must be a positive value")]
+        [Display(Name = "Monthly Fixed Budget (?) - Resets every month")]
+        public decimal MonthlyFixedBudget { get; set; } = 0;
     }
 
     /// <summary>

@@ -47,6 +47,41 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         /// Display name for the breakdown period
         /// </summary>
         public string BreakdownPeriodName { get; set; } = "This Month";
+
+        /// <summary>
+        /// Selected month for filtering (format: "yyyy-MM")
+        /// </summary>
+        public string? SelectedMonth { get; set; }
+
+        /// <summary>
+        /// Available months for dropdown (from December 2025 to current)
+        /// </summary>
+        public List<MonthOption> AvailableMonths { get; set; } = new();
+
+        /// <summary>
+        /// Total monthly fixed budget (sum of all categories)
+        /// </summary>
+        public decimal TotalMonthlyFixedBudget { get; set; }
+
+        /// <summary>
+        /// Total spent in selected month
+        /// </summary>
+        public decimal SelectedMonthTotal { get; set; }
+
+        /// <summary>
+        /// Remaining balance for selected month
+        /// </summary>
+        public decimal SelectedMonthRemaining { get; set; }
+    }
+
+    /// <summary>
+    /// Month option for dropdown
+    /// </summary>
+    public class MonthOption
+    {
+        public string Value { get; set; } = string.Empty; // "yyyy-MM"
+        public string Display { get; set; } = string.Empty; // "December 2025"
+        public bool IsSelected { get; set; }
     }
 
     /// <summary>
@@ -70,9 +105,11 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         public string CategoryName { get; set; } = string.Empty;
         public decimal BudgetAmount { get; set; }
         public decimal RemainingAmount { get; set; }
+        public decimal MonthlyFixedBudget { get; set; }
         public decimal TotalExpenses => BudgetAmount - RemainingAmount;
         public decimal UsagePercentage => BudgetAmount > 0 ? Math.Round((TotalExpenses / BudgetAmount) * 100, 1) : 0;
         public bool IsLowBalance => BudgetAmount > 0 && RemainingAmount <= (BudgetAmount * 0.2m);
         public bool HasBudget => BudgetAmount > 0;
+        public bool HasMonthlyBudget => MonthlyFixedBudget > 0;
     }
 }

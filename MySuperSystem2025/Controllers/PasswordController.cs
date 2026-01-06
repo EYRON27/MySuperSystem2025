@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using MySuperSystem2025.Models.Domain;
 using MySuperSystem2025.Models.ViewModels.Password;
 using MySuperSystem2025.Services.Interfaces;
+using MySuperSystem2025.Services;
 
 namespace MySuperSystem2025.Controllers
 {
@@ -19,17 +20,20 @@ namespace MySuperSystem2025.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly ILogger<PasswordController> _logger;
+        private readonly PdfService _pdfService;
 
         public PasswordController(
             IPasswordService passwordService,
             UserManager<ApplicationUser> userManager,
             SignInManager<ApplicationUser> signInManager,
-            ILogger<PasswordController> logger)
+            ILogger<PasswordController> logger,
+            PdfService pdfService)
         {
             _passwordService = passwordService;
             _userManager = userManager;
             _signInManager = signInManager;
             _logger = logger;
+            _pdfService = pdfService;
         }
 
         private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -300,6 +304,15 @@ namespace MySuperSystem2025.Controllers
             }
 
             return RedirectToAction(nameof(Categories));
+        }
+
+        // GET: /Password/ExportPdf
+        public async Task<IActionResult> ExportPdf(int? categoryId = null, string? search = null)
+        {
+            var dashboard = await _passwordService.GetDashboardAsync(UserId, categoryId, search);
+            var pdfBytes = _pdfService.GeneratePasswordDashboardPdf(dashboard, User.Identity?.Name ?? "User");
+
+            return File(pdfBytes, "application/pdf", $"PasswordVaultReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
         }
     }
 }

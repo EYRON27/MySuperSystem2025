@@ -7,7 +7,7 @@ namespace MySuperSystem2025.Services.Interfaces
     /// </summary>
     public interface IExpenseService
     {
-        Task<ExpenseDashboardViewModel> GetDashboardAsync(string userId, string? breakdownPeriod = null);
+        Task<ExpenseDashboardViewModel> GetDashboardAsync(string userId, string? breakdownPeriod = null, string? selectedMonth = null);
         Task<ExpenseListViewModel> GetExpensesAsync(string userId, string? period = null, int? categoryId = null, DateTime? startDate = null, DateTime? endDate = null);
         Task<EditExpenseViewModel?> GetExpenseForEditAsync(int id, string userId);
         Task<ExpenseListItemViewModel?> GetExpenseDetailsAsync(int id, string userId);
@@ -26,5 +26,15 @@ namespace MySuperSystem2025.Services.Interfaces
         /// Sets budget for a category and recalculates remaining balance
         /// </summary>
         Task<bool> SetCategoryBudgetAsync(int categoryId, decimal budgetAmount, string userId);
+
+        /// <summary>
+        /// Checks and applies monthly budget reset for all user categories
+        /// </summary>
+        Task ResetMonthlyBudgetsIfNeededAsync(string userId);
+
+        /// <summary>
+        /// Gets category balances for a specific month
+        /// </summary>
+        Task<List<CategoryBalanceViewModel>> GetCategoryBalancesForMonthAsync(string userId, int year, int month);
     }
 }

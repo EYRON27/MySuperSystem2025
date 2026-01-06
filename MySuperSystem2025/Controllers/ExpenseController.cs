@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using MySuperSystem2025.Models.ViewModels.Expense;
 using MySuperSystem2025.Services.Interfaces;
+using MySuperSystem2025.Services;
 
 namespace MySuperSystem2025.Controllers
 {
@@ -15,19 +16,21 @@ namespace MySuperSystem2025.Controllers
     {
         private readonly IExpenseService _expenseService;
         private readonly ILogger<ExpenseController> _logger;
+        private readonly PdfService _pdfService;
 
-        public ExpenseController(IExpenseService expenseService, ILogger<ExpenseController> logger)
+        public ExpenseController(IExpenseService expenseService, ILogger<ExpenseController> logger, PdfService pdfService)
         {
             _expenseService = expenseService;
             _logger = logger;
+            _pdfService = pdfService;
         }
 
         private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
         // GET: /Expense
-        public async Task<IActionResult> Index(string? period = null, int? categoryId = null, string? breakdown = null)
+        public async Task<IActionResult> Index(string? period = null, int? categoryId = null, string? breakdown = null, string? month = null)
         {
-            var dashboard = await _expenseService.GetDashboardAsync(UserId, breakdown);
+            var dashboard = await _expenseService.GetDashboardAsync(UserId, breakdown, month);
             return View(dashboard);
         }
 
@@ -299,6 +302,15 @@ namespace MySuperSystem2025.Controllers
             }
 
             return RedirectToAction(nameof(Categories));
+        }
+
+        // GET: /Expense/ExportPdf
+        public async Task<IActionResult> ExportPdf(string? breakdown = null)
+        {
+            var dashboard = await _expenseService.GetDashboardAsync(UserId, breakdown);
+            var pdfBytes = _pdfService.GenerateExpenseDashboardPdf(dashboard, User.Identity?.Name ?? "User");
+
+            return File(pdfBytes, "application/pdf", $"ExpenseReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
         }
     }
 }
