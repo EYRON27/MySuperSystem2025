@@ -41,7 +41,7 @@ namespace MySuperSystem2025.Models.ViewModels.Password
     }
 
     /// <summary>
-    /// View model for editing a stored password
+    /// View model for editing a stored password with secure verification
     /// </summary>
     public class EditPasswordViewModel
     {
@@ -62,10 +62,23 @@ namespace MySuperSystem2025.Models.ViewModels.Password
         [Display(Name = "Username / Email")]
         public string Username { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Current stored password (user must enter to verify before changing)
+        /// Required when changing the password
+        /// </summary>
+        [DataType(DataType.Password)]
+        [Display(Name = "Current Stored Password")]
+        public string? CurrentPassword { get; set; }
+
         [StringLength(255, MinimumLength = 8, ErrorMessage = "Password must be at least 8 characters")]
         [DataType(DataType.Password)]
-        [Display(Name = "New Password (leave blank to keep current)")]
+        [Display(Name = "New Password")]
         public string? NewPassword { get; set; }
+
+        [DataType(DataType.Password)]
+        [Display(Name = "Confirm New Password")]
+        [Compare("NewPassword", ErrorMessage = "New password and confirmation do not match")]
+        public string? ConfirmNewPassword { get; set; }
 
         [Required(ErrorMessage = "Category is required")]
         [Display(Name = "Category")]
@@ -76,6 +89,11 @@ namespace MySuperSystem2025.Models.ViewModels.Password
         public string? Notes { get; set; }
 
         public SelectList? Categories { get; set; }
+
+        /// <summary>
+        /// Indicates if the user wants to change the password
+        /// </summary>
+        public bool IsChangingPassword => !string.IsNullOrWhiteSpace(NewPassword);
     }
 
     /// <summary>

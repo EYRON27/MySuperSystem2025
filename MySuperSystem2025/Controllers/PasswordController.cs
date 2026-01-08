@@ -114,14 +114,14 @@ namespace MySuperSystem2025.Controllers
                 return View(model);
             }
 
-            var result = await _passwordService.UpdatePasswordAsync(model, UserId);
-            if (result)
+            var (success, errorMessage) = await _passwordService.UpdatePasswordAsync(model, UserId);
+            if (success)
             {
                 TempData["Success"] = "Password updated successfully.";
                 return RedirectToAction(nameof(Index));
             }
 
-            TempData["Error"] = "Failed to update password.";
+            TempData["Error"] = errorMessage ?? "Failed to update password.";
             var cats = await _passwordService.GetCategoriesAsync(UserId);
             model.Categories = new SelectList(cats, "Id", "Name");
             return View(model);

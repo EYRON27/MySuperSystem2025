@@ -32,7 +32,14 @@
                     <select name="month" class="form-select pe-4" onchange="this.form.submit()">
                         @foreach (var monthOption in Model.AvailableMonths)
                         {
-                            <option value="@monthOption.Value" @(monthOption.IsSelected ? "selected" : "")>@monthOption.Display</option>
+                            if (monthOption.IsSelected)
+                            {
+                                <option value="@monthOption.Value" selected>@monthOption.Display</option>
+                            }
+                            else
+                            {
+                                <option value="@monthOption.Value">@monthOption.Display</option>
+                            }
                         }
                     </select>
                 </div>

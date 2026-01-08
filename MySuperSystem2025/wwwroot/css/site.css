@@ -20,3 +20,8 @@ body {
   height: 100vh;
   overflow: hidden;
 }
+
+/* Ensure select caret does not overlap abbreviated month text in small widths */
+.form-select.pe-4 {
+  padding-right: 2.5rem !important; /* leave space for caret */
+}

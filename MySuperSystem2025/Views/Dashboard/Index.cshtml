@@ -2,105 +2,402 @@
     ViewData["Title"] = "Dashboard";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 mb-0 fw-bold">Dashboard</h1>
+<style>
+    /* Dashboard Professional Styling */
+    .dashboard-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        color: white;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+    }
+    
+    .dashboard-header h1 {
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .dashboard-header p {
+        opacity: 0.9;
+        margin-bottom: 0;
+    }
+    
+    .module-card {
+        border: none;
+        border-radius: 16px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+        background: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .module-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    .module-card .card-body {
+        padding: 1.75rem;
+    }
+    
+    .module-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.25rem;
+        transition: transform 0.3s ease;
+    }
+    
+    .module-card:hover .module-icon {
+        transform: scale(1.1);
+    }
+    
+    .module-icon i {
+        font-size: 1.75rem;
+    }
+    
+    .module-icon.expense {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        color: white;
+    }
+    
+    .module-icon.task {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        color: white;
+    }
+    
+    .module-icon.password {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        color: white;
+    }
+    
+    .module-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin-bottom: 0.5rem;
+    }
+    
+    .module-description {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+    
+    .module-link {
+        display: inline-flex;
+        align-items: center;
+        color: #667eea;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    
+    .module-link:hover {
+        color: #764ba2;
+        gap: 0.75rem;
+    }
+    
+    .module-link i {
+        transition: transform 0.2s ease;
+    }
+    
+    .module-link:hover i {
+        transform: translateX(4px);
+    }
+    
+    .quick-action-card {
+        border: none;
+        border-radius: 16px;
+        background: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+    
+    .quick-action-card .card-header {
+        background: transparent;
+        border-bottom: 1px solid #f0f0f0;
+        padding: 1.25rem 1.5rem;
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+    
+    .quick-action-btn {
+        border-radius: 12px;
+        padding: 0.875rem 1.25rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .quick-action-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .quick-action-btn.expense-btn {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        border: none;
+        color: white;
+    }
+    
+    .quick-action-btn.task-btn {
+        background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+        border: none;
+        color: white;
+    }
+    
+    .quick-action-btn.password-btn {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        border: none;
+        color: white;
+    }
+    
+    .feature-item {
+        display: flex;
+        align-items: flex-start;
+        padding: 1rem 0;
+        border-bottom: 1px solid #f5f5f5;
+    }
+    
+    .feature-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    
+    .feature-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        flex-shrink: 0;
+    }
+    
+    .feature-icon.expense {
+        background: rgba(79, 172, 254, 0.15);
+        color: #4facfe;
+    }
+    
+    .feature-icon.task {
+        background: rgba(67, 233, 123, 0.15);
+        color: #43e97b;
+    }
+    
+    .feature-icon.password {
+        background: rgba(250, 112, 154, 0.15);
+        color: #fa709a;
+    }
+    
+    .feature-title {
+        font-weight: 600;
+        color: #1a1a2e;
+        margin-bottom: 0.25rem;
+    }
+    
+    .feature-desc {
+        color: #6c757d;
+        font-size: 0.85rem;
+        margin-bottom: 0;
+    }
+    
+    .time-greeting {
+        font-size: 0.9rem;
+        opacity: 0.85;
+    }
+    
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-fade-in {
+        animation: fadeInUp 0.6s ease forwards;
+    }
+    
+    .delay-1 { animation-delay: 0.1s; }
+    .delay-2 { animation-delay: 0.2s; }
+    .delay-3 { animation-delay: 0.3s; }
+    .delay-4 { animation-delay: 0.4s; }
+</style>
+
+<!-- Dashboard Header -->
+<div class="dashboard-header animate-fade-in">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <p class="time-greeting mb-2" id="timeGreeting">
+                <i class="bi bi-sun me-2"></i>Good morning
+            </p>
+            <h1>Welcome to MySuperSystem</h1>
+            <p>Your personal productivity hub — manage expenses, tasks, and passwords all in one place.</p>
+        </div>
+        <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+            <span class="badge bg-white bg-opacity-25 px-3 py-2 rounded-pill">
+                <i class="bi bi-calendar3 me-2"></i>@DateTime.Now.ToString("dddd, MMMM d")
+            </span>
+        </div>
+    </div>
 </div>
 
+<!-- Module Cards -->
 <div class="row g-4 mb-4">
-    <!-- Quick Stats -->
-    <div class="col-md-4">
-        <div class="card stat-card h-100">
+    <div class="col-lg-4 animate-fade-in delay-1">
+        <div class="card module-card h-100">
             <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle p-3 me-3" style="background-color: #e3f2fd;">
-                        <i class="bi bi-wallet2 fs-4" style="color: #1976d2;"></i>
-                    </div>
-                    <div>
-                        <h6 class="fw-bold mb-1" style="color: #1976d2;">Expense Dashboard</h6>
-                        <p class="mb-0 text-muted small">Track your expenses</p>
-                    </div>
+                <div class="module-icon expense">
+                    <i class="bi bi-wallet2"></i>
                 </div>
-                <a asp-controller="Expense" asp-action="Index" class="stretched-link"></a>
+                <h5 class="module-title">Expense Tracker</h5>
+                <p class="module-description">
+                    Track daily, weekly, monthly expenses with smart categories and budget management.
+                </p>
+                <a asp-controller="Expense" asp-action="Index" class="module-link">
+                    Open Dashboard <i class="bi bi-arrow-right ms-2"></i>
+                </a>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card stat-card h-100">
+    
+    <div class="col-lg-4 animate-fade-in delay-2">
+        <div class="card module-card h-100">
             <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle p-3 me-3" style="background-color: #e8f5e9;">
-                        <i class="bi bi-check2-square fs-4" style="color: #388e3c;"></i>
-                    </div>
-                    <div>
-                        <h6 class="fw-bold mb-1" style="color: #388e3c;">Task Manager</h6>
-                        <p class="mb-0 text-muted small">Manage your tasks</p>
-                    </div>
+                <div class="module-icon task">
+                    <i class="bi bi-check2-square"></i>
                 </div>
-                <a asp-controller="Task" asp-action="Index" class="stretched-link"></a>
+                <h5 class="module-title">Task Manager</h5>
+                <p class="module-description">
+                    Organize tasks with deadlines, priorities, and status tracking to stay productive.
+                </p>
+                <a asp-controller="Task" asp-action="Index" class="module-link">
+                    Open Dashboard <i class="bi bi-arrow-right ms-2"></i>
+                </a>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card stat-card h-100">
+    
+    <div class="col-lg-4 animate-fade-in delay-3">
+        <div class="card module-card h-100">
             <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="rounded-circle p-3 me-3" style="background-color: #fff8e1;">
-                        <i class="bi bi-shield-lock fs-4" style="color: #f57c00;"></i>
-                    </div>
-                    <div>
-                        <h6 class="fw-bold mb-1" style="color: #f57c00;">Password Manager</h6>
-                        <p class="mb-0 text-muted small">Secure your credentials</p>
-                    </div>
+                <div class="module-icon password">
+                    <i class="bi bi-shield-lock"></i>
                 </div>
-                <a asp-controller="Password" asp-action="Index" class="stretched-link"></a>
+                <h5 class="module-title">Password Vault</h5>
+                <p class="module-description">
+                    Securely store and manage your passwords with AES-256 encryption protection.
+                </p>
+                <a asp-controller="Password" asp-action="Index" class="module-link">
+                    Open Dashboard <i class="bi bi-arrow-right ms-2"></i>
+                </a>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Quick Actions -->
-<div class="row g-4">
-    <div class="col-lg-6">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-lightning me-2"></i>Quick Actions</span>
+<!-- Quick Actions & Features -->
+<div class="row g-4 animate-fade-in delay-4">
+    <div class="col-lg-5">
+        <div class="card quick-action-card h-100">
+            <div class="card-header">
+                <i class="bi bi-lightning-charge me-2"></i>Quick Actions
             </div>
             <div class="card-body">
-                <div class="d-grid gap-2">
-                    <a asp-controller="Expense" asp-action="Create" class="btn btn-outline-primary">
-                        <i class="bi bi-plus-circle me-2"></i>Add New Expense
+                <div class="d-grid gap-3">
+                    <a asp-controller="Expense" asp-action="Create" class="btn quick-action-btn expense-btn">
+                        <i class="bi bi-plus-circle"></i>
+                        Add New Expense
                     </a>
-                    <a asp-controller="Task" asp-action="Create" class="btn btn-outline-success">
-                        <i class="bi bi-plus-circle me-2"></i>Create New Task
+                    <a asp-controller="Task" asp-action="Create" class="btn quick-action-btn task-btn">
+                        <i class="bi bi-plus-circle"></i>
+                        Create New Task
                     </a>
-                    <a asp-controller="Password" asp-action="Create" class="btn btn-outline-warning">
-                        <i class="bi bi-plus-circle me-2"></i>Store New Password
+                    <a asp-controller="Password" asp-action="Create" class="btn quick-action-btn password-btn">
+                        <i class="bi bi-plus-circle"></i>
+                        Store New Password
                     </a>
                 </div>
             </div>
         </div>
     </div>
-    <div class="col-lg-6">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-info-circle me-2"></i>Getting Started</span>
+    
+    <div class="col-lg-7">
+        <div class="card quick-action-card h-100">
+            <div class="card-header">
+                <i class="bi bi-stars me-2"></i>Features Overview
             </div>
             <div class="card-body">
-                <ul class="list-unstyled mb-0">
-                    <li class="mb-3">
-                        <i class="bi bi-check-circle-fill text-success me-2"></i>
-                        <strong>Expense Tracking:</strong> Track daily, weekly, monthly, and yearly expenses with categories.
-                    </li>
-                    <li class="mb-3">
-                        <i class="bi bi-check-circle-fill text-success me-2"></i>
-                        <strong>Task Management:</strong> Create and manage tasks with deadlines and status tracking.
-                    </li>
-                    <li class="mb-0">
-                        <i class="bi bi-check-circle-fill text-success me-2"></i>
-                        <strong>Password Manager:</strong> Securely store your passwords with AES encryption.
-                    </li>
-                </ul>
+                <div class="feature-item">
+                    <div class="feature-icon expense">
+                        <i class="bi bi-graph-up-arrow"></i>
+                    </div>
+                    <div>
+                        <h6 class="feature-title">Smart Expense Tracking</h6>
+                        <p class="feature-desc">Track expenses with monthly budgets, category breakdowns, and visual reports.</p>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon task">
+                        <i class="bi bi-kanban"></i>
+                    </div>
+                    <div>
+                        <h6 class="feature-title">Task Organization</h6>
+                        <p class="feature-desc">Create tasks with deadlines, mark progress, and never miss important activities.</p>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon password">
+                        <i class="bi bi-shield-check"></i>
+                    </div>
+                    <div>
+                        <h6 class="feature-title">Secure Password Storage</h6>
+                        <p class="feature-desc">Military-grade AES encryption keeps your credentials safe and accessible.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Dynamic greeting based on time of day
+        function updateGreeting() {
+            const hour = new Date().getHours();
+            const greetingEl = document.getElementById('timeGreeting');
+            let greeting, icon;
+            
+            if (hour >= 5 && hour < 12) {
+                greeting = 'Good morning';
+                icon = 'bi-sunrise';
+            } else if (hour >= 12 && hour < 17) {
+                greeting = 'Good afternoon';
+                icon = 'bi-sun';
+            } else if (hour >= 17 && hour < 21) {
+                greeting = 'Good evening';
+                icon = 'bi-sunset';
+            } else {
+                greeting = 'Good night';
+                icon = 'bi-moon-stars';
+            }
+            
+            greetingEl.innerHTML = `<i class="bi ${icon} me-2"></i>${greeting}`;
+        }
+        
+        updateGreeting();
+    </script>
+}

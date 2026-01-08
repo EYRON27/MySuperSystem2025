@@ -11,9 +11,15 @@ namespace MySuperSystem2025.Services.Interfaces
         Task<EditPasswordViewModel?> GetPasswordForEditAsync(int id, string userId);
         Task<PasswordListItemViewModel?> GetPasswordForDisplayAsync(int id, string userId);
         Task<bool> CreatePasswordAsync(CreatePasswordViewModel model, string userId);
-        Task<bool> UpdatePasswordAsync(EditPasswordViewModel model, string userId);
+        Task<(bool Success, string? ErrorMessage)> UpdatePasswordAsync(EditPasswordViewModel model, string userId);
         Task<bool> DeletePasswordAsync(int id, string userId);
         Task<string?> RevealPasswordAsync(int id, string userId);
+        
+        /// <summary>
+        /// Verifies if the provided password matches the stored password
+        /// </summary>
+        Task<bool> VerifyStoredPasswordAsync(int id, string userId, string passwordToVerify);
+        
         Task<List<PasswordCategoryViewModel>> GetCategoriesAsync(string userId);
         Task<EditPasswordCategoryViewModel?> GetCategoryForEditAsync(int id, string userId);
         Task<PasswordCategoryViewModel?> GetCategoryDetailsAsync(int id, string userId);

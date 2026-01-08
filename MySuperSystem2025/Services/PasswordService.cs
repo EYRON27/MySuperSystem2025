@@ -122,14 +122,15 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
-        /// Updates a stored password
+        /// Updates a stored password with secure verification
         /// </summary>
-        public async Task<bool> UpdatePasswordAsync(EditPasswordViewModel model, string userId)
+        public async Task<(bool Success, string? ErrorMessage)> UpdatePasswordAsync(EditPasswordViewModel model, string userId)
         {
             try
             {
                 var storedPassword = await _unitOfWork.Passwords.GetPasswordByIdAndUserAsync(model.Id, userId);
-                if (storedPassword == null) return false;
+                if (storedPassword == null) 
+                    return (false, "Password entry not found.");
 
                 storedPassword.WebsiteOrAppName = model.WebsiteOrAppName;
                 storedPassword.WebsiteUrl = model.WebsiteUrl;
@@ -140,18 +141,60 @@ namespace MySuperSystem2025.Services
                 // Only update password if a new one is provided
                 if (!string.IsNullOrWhiteSpace(model.NewPassword))
                 {
+                    // Verify current password before allowing change
+                    if (string.IsNullOrWhiteSpace(model.CurrentPassword))
+                    {
+                        return (false, "Current password is required to change the stored password.");
+                    }
+
+                    // Decrypt and compare current password
+                    var decryptedCurrentPassword = _encryptionService.Decrypt(storedPassword.EncryptedPassword);
+                    if (decryptedCurrentPassword != model.CurrentPassword)
+                    {
+                        _logger.LogWarning("Password verification failed for password {PasswordId}", model.Id);
+                        return (false, "Current password is incorrect. Please enter the correct stored password.");
+                    }
+
+                    // Verify new password matches confirmation
+                    if (model.NewPassword != model.ConfirmNewPassword)
+                    {
+                        return (false, "New password and confirmation do not match.");
+                    }
+
+                    // Encrypt and save new password
                     storedPassword.EncryptedPassword = _encryptionService.Encrypt(model.NewPassword);
+                    _logger.LogInformation("Password {PasswordId} changed for user {UserId}", model.Id, userId);
                 }
 
                 _unitOfWork.Passwords.Update(storedPassword);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation("Password {PasswordId} updated for user {UserId}", model.Id, userId);
-                return true;
+                return (true, null);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating password {PasswordId} for user {UserId}", model.Id, userId);
+                return (false, "An error occurred while updating the password.");
+            }
+        }
+
+        /// <summary>
+        /// Verifies if the provided password matches the stored password
+        /// </summary>
+        public async Task<bool> VerifyStoredPasswordAsync(int id, string userId, string passwordToVerify)
+        {
+            try
+            {
+                var storedPassword = await _unitOfWork.Passwords.GetPasswordByIdAndUserAsync(id, userId);
+                if (storedPassword == null) return false;
+
+                var decryptedPassword = _encryptionService.Decrypt(storedPassword.EncryptedPassword);
+                return decryptedPassword == passwordToVerify;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error verifying password {PasswordId} for user {UserId}", id, userId);
                 return false;
             }
         }
