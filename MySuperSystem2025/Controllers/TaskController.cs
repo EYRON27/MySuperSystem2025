@@ -137,6 +137,24 @@ namespace MySuperSystem2025.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // POST: /Task/UpdateStatusAjax - For drag & drop functionality
+        [HttpPost]
+        public async Task<IActionResult> UpdateStatusAjax([FromBody] UpdateTaskStatusViewModel model)
+        {
+            if (model == null)
+            {
+                return Json(new { success = false, message = "Invalid request." });
+            }
+
+            var result = await _taskService.UpdateTaskStatusAsync(model.Id, model.Status, UserId);
+            if (result)
+            {
+                return Json(new { success = true, message = "Task status updated." });
+            }
+
+            return Json(new { success = false, message = "Failed to update task status." });
+        }
+
         // GET: /Task/Delete/5
         [HttpGet]
         public async Task<IActionResult> Delete(int id)

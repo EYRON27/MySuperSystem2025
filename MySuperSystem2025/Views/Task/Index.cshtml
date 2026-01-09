@@ -4,6 +4,51 @@
     ViewData["Title"] = "Task Manager";
 }
 
+<style>
+    /* Drag & Drop Styles */
+    .task-column {
+        min-height: 200px;
+    }
+    
+    .task-item {
+        cursor: grab;
+        transition: all 0.2s ease;
+    }
+    
+    .task-item:active {
+        cursor: grabbing;
+    }
+    
+    .task-item.dragging {
+        opacity: 0.5;
+        transform: scale(0.98);
+    }
+    
+    .task-column.drag-over {
+        background-color: rgba(0, 123, 255, 0.1);
+        border: 2px dashed #007bff !important;
+    }
+    
+    .drop-zone {
+        padding: 1rem;
+        min-height: 100px;
+        transition: all 0.2s ease;
+    }
+    
+    .drop-zone.drag-over {
+        background-color: rgba(0, 123, 255, 0.05);
+    }
+    
+    .task-item.completed-task {
+        cursor: default;
+    }
+    
+    .drag-hint {
+        font-size: 0.75rem;
+        opacity: 0.7;
+    }
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h3 mb-0 fw-bold"><i class="bi bi-check2-square me-2"></i>Task Manager</h1>
     <div>
@@ -14,6 +59,13 @@
             <i class="bi bi-plus-circle me-1"></i>New Task
         </a>
     </div>
+</div>
+
+<!-- Drag & Drop Hint -->
+<div class="alert alert-info alert-dismissible fade show mb-4" role="alert">
+    <i class="bi bi-arrows-move me-2"></i>
+    <strong>Tip:</strong> Drag and drop tasks between columns to change their status.
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
 
 <!-- Summary Cards -->
@@ -83,10 +135,13 @@
             <ul class="list-group list-group-flush">
                 @foreach (var task in Model.OverdueTasks)
                 {
-                    <li class="list-group-item list-group-item-danger">
+                    <li class="list-group-item list-group-item-danger task-item" draggable="true" data-task-id="@task.Id" data-task-status="@((int)task.Status)">
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
-                                <h6 class="mb-1">@task.Title</h6>
+                                <h6 class="mb-1">
+                                    <i class="bi bi-grip-vertical me-1 text-muted drag-hint"></i>
+                                    @task.Title
+                                </h6>
                                 @if (task.Deadline.HasValue)
                                 {
                                     <small class="text-danger">
@@ -134,20 +189,23 @@
 <div class="row g-4">
     <!-- To Do -->
     <div class="col-lg-4">
-        <div class="card h-100">
+        <div class="card h-100 task-column" data-status="@((int)TaskStatus.ToDo)">
             <div class="card-header bg-secondary text-white">
                 <i class="bi bi-list-task me-2"></i>To Do (@Model.ToDoTasks.Count)
             </div>
-            <div class="card-body p-0">
+            <div class="card-body p-0 drop-zone" data-status="@((int)TaskStatus.ToDo)">
                 @if (Model.ToDoTasks.Any())
                 {
                     <ul class="list-group list-group-flush">
                         @foreach (var task in Model.ToDoTasks)
                         {
-                            <li class="list-group-item @(task.IsOverdue ? "list-group-item-danger" : "")">
+                            <li class="list-group-item task-item @(task.IsOverdue ? "list-group-item-danger" : "")" draggable="true" data-task-id="@task.Id" data-task-status="@((int)task.Status)">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <h6 class="mb-1">@task.Title</h6>
+                                        <h6 class="mb-1">
+                                            <i class="bi bi-grip-vertical me-1 text-muted drag-hint"></i>
+                                            @task.Title
+                                        </h6>
                                         @if (task.Deadline.HasValue)
                                         {
                                             <small class="text-muted">
@@ -181,9 +239,9 @@
                 }
                 else
                 {
-                    <div class="text-center py-4">
+                    <div class="text-center py-4 empty-drop-zone">
                         <i class="bi bi-inbox text-muted fs-1"></i>
-                        <p class="text-muted mt-2 mb-0">No tasks</p>
+                        <p class="text-muted mt-2 mb-0">No tasks - drag tasks here</p>
                     </div>
                 }
             </div>
@@ -192,20 +250,23 @@
 
     <!-- Ongoing -->
     <div class="col-lg-4">
-        <div class="card h-100">
+        <div class="card h-100 task-column" data-status="@((int)TaskStatus.Ongoing)">
             <div class="card-header bg-primary text-white">
                 <i class="bi bi-arrow-repeat me-2"></i>Ongoing (@Model.OngoingTasks.Count)
             </div>
-            <div class="card-body p-0">
+            <div class="card-body p-0 drop-zone" data-status="@((int)TaskStatus.Ongoing)">
                 @if (Model.OngoingTasks.Any())
                 {
                     <ul class="list-group list-group-flush">
                         @foreach (var task in Model.OngoingTasks)
                         {
-                            <li class="list-group-item @(task.IsOverdue ? "list-group-item-danger" : "")">
+                            <li class="list-group-item task-item @(task.IsOverdue ? "list-group-item-danger" : "")" draggable="true" data-task-id="@task.Id" data-task-status="@((int)task.Status)">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
-                                        <h6 class="mb-1">@task.Title</h6>
+                                        <h6 class="mb-1">
+                                            <i class="bi bi-grip-vertical me-1 text-muted drag-hint"></i>
+                                            @task.Title
+                                        </h6>
                                         @if (task.Deadline.HasValue)
                                         {
                                             <small class="text-muted">
@@ -239,9 +300,9 @@
                 }
                 else
                 {
-                    <div class="text-center py-4">
+                    <div class="text-center py-4 empty-drop-zone">
                         <i class="bi bi-inbox text-muted fs-1"></i>
-                        <p class="text-muted mt-2 mb-0">No tasks</p>
+                        <p class="text-muted mt-2 mb-0">No tasks - drag tasks here</p>
                     </div>
                 }
             </div>
@@ -250,17 +311,17 @@
 
     <!-- Completed -->
     <div class="col-lg-4">
-        <div class="card h-100">
+        <div class="card h-100 task-column" data-status="@((int)TaskStatus.Completed)">
             <div class="card-header bg-success text-white">
                 <i class="bi bi-check-circle me-2"></i>Completed (@Model.CompletedTasks.Count)
             </div>
-            <div class="card-body p-0">
+            <div class="card-body p-0 drop-zone" data-status="@((int)TaskStatus.Completed)">
                 @if (Model.CompletedTasks.Any())
                 {
                     <ul class="list-group list-group-flush">
                         @foreach (var task in Model.CompletedTasks)
                         {
-                            <li class="list-group-item">
+                            <li class="list-group-item task-item completed-task" data-task-id="@task.Id" data-task-status="@((int)task.Status)">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
                                         <h6 class="mb-1 text-decoration-line-through text-muted">@task.Title</h6>
@@ -290,7 +351,7 @@
                 }
                 else
                 {
-                    <div class="text-center py-4">
+                    <div class="text-center py-4 empty-drop-zone">
                         <i class="bi bi-inbox text-muted fs-1"></i>
                         <p class="text-muted mt-2 mb-0">No completed tasks</p>
                     </div>
@@ -299,3 +360,95 @@
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const taskItems = document.querySelectorAll('.task-item:not(.completed-task)');
+            const dropZones = document.querySelectorAll('.drop-zone');
+            
+            let draggedItem = null;
+            
+            // Add drag events to task items (except completed)
+            taskItems.forEach(item => {
+                item.addEventListener('dragstart', function(e) {
+                    draggedItem = this;
+                    this.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                    e.dataTransfer.setData('text/plain', this.dataset.taskId);
+                });
+                
+                item.addEventListener('dragend', function() {
+                    this.classList.remove('dragging');
+                    dropZones.forEach(zone => {
+                        zone.classList.remove('drag-over');
+                        zone.closest('.task-column')?.classList.remove('drag-over');
+                    });
+                    draggedItem = null;
+                });
+            });
+            
+            // Add drop events to columns
+            dropZones.forEach(zone => {
+                zone.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    this.classList.add('drag-over');
+                    this.closest('.task-column')?.classList.add('drag-over');
+                });
+                
+                zone.addEventListener('dragleave', function(e) {
+                    // Only remove if we're leaving the zone completely
+                    if (!this.contains(e.relatedTarget)) {
+                        this.classList.remove('drag-over');
+                        this.closest('.task-column')?.classList.remove('drag-over');
+                    }
+                });
+                
+                zone.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    this.classList.remove('drag-over');
+                    this.closest('.task-column')?.classList.remove('drag-over');
+                    
+                    if (!draggedItem) return;
+                    
+                    const taskId = parseInt(draggedItem.dataset.taskId);
+                    const newStatus = parseInt(this.dataset.status);
+                    const currentStatus = parseInt(draggedItem.dataset.taskStatus);
+                    
+                    // Don't do anything if dropping in same column
+                    if (currentStatus === newStatus) return;
+                    
+                    // Update task status via AJAX
+                    updateTaskStatus(taskId, newStatus);
+                });
+            });
+            
+            function updateTaskStatus(taskId, newStatus) {
+                fetch('/Task/UpdateStatusAjax', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        id: taskId,
+                        status: newStatus
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Reload the page to reflect changes
+                        location.reload();
+                    } else {
+                        alert('Failed to update task: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while updating the task.');
+                });
+            }
+        });
+    </script>
+}

@@ -28,12 +28,21 @@ namespace MySuperSystem2025.Services
             var allTasks = await _unitOfWork.Tasks.GetUserTasksAsync(userId);
             var tasksList = allTasks.ToList();
 
+            _logger.LogInformation("GetDashboardAsync: Retrieved {Count} tasks for user {UserId}", tasksList.Count, userId);
+
             var now = DateTime.Now;
             var overdueTasks = tasksList
                 .Where(t => t.Deadline.HasValue && t.Deadline.Value < now && t.Status != TaskStatus.Completed)
                 .ToList();
 
             var overdueTaskIds = overdueTasks.Select(t => t.Id).ToHashSet();
+
+            // Log deadline information for debugging
+            foreach (var task in tasksList.Take(5))
+            {
+                _logger.LogInformation("Task {TaskId} ({Title}): Deadline={Deadline}, Status={Status}", 
+                    task.Id, task.Title, task.Deadline?.ToString("yyyy-MM-dd HH:mm") ?? "NULL", task.Status);
+            }
 
             return new TaskDashboardViewModel
             {
@@ -109,10 +118,14 @@ namespace MySuperSystem2025.Services
                     UserId = userId
                 };
 
+                _logger.LogInformation("Creating task: Title={Title}, Deadline={Deadline}, UserId={UserId}", 
+                    task.Title, task.Deadline?.ToString("yyyy-MM-dd HH:mm") ?? "NULL", userId);
+
                 await _unitOfWork.Tasks.AddAsync(task);
                 await _unitOfWork.SaveChangesAsync();
 
-                _logger.LogInformation("Task created successfully for user {UserId}", userId);
+                _logger.LogInformation("Task created successfully: Id={Id}, Title={Title}, Deadline={Deadline}", 
+                    task.Id, task.Title, task.Deadline?.ToString("yyyy-MM-dd HH:mm") ?? "NULL");
                 return true;
             }
             catch (Exception ex)
@@ -131,6 +144,9 @@ namespace MySuperSystem2025.Services
             {
                 var task = await _unitOfWork.Tasks.GetTaskByIdAndUserAsync(model.Id, userId);
                 if (task == null) return false;
+
+                _logger.LogInformation("Updating task {TaskId}: Old Deadline={OldDeadline}, New Deadline={NewDeadline}", 
+                    model.Id, task.Deadline?.ToString("yyyy-MM-dd HH:mm") ?? "NULL", model.Deadline?.ToString("yyyy-MM-dd HH:mm") ?? "NULL");
 
                 // Completed tasks cannot be edited
                 if (task.Status == TaskStatus.Completed)
@@ -159,7 +175,8 @@ namespace MySuperSystem2025.Services
                 _unitOfWork.Tasks.Update(task);
                 await _unitOfWork.SaveChangesAsync();
 
-                _logger.LogInformation("Task {TaskId} updated for user {UserId}", model.Id, userId);
+                _logger.LogInformation("Task {TaskId} updated successfully: Deadline={Deadline}", 
+                    model.Id, task.Deadline?.ToString("yyyy-MM-dd HH:mm") ?? "NULL");
                 return true;
             }
             catch (Exception ex)
@@ -235,15 +252,17 @@ namespace MySuperSystem2025.Services
         private TaskListItemViewModel MapToListItem(TaskItem task)
         {
             var now = DateTime.Now;
+            var isOverdue = task.Deadline.HasValue && task.Deadline.Value < now && task.Status != TaskStatus.Completed;
+            
             return new TaskListItemViewModel
             {
                 Id = task.Id,
                 Title = task.Title,
                 Description = task.Description,
                 Status = task.Status,
-                Deadline = task.Deadline,
+                Deadline = task.Deadline, // Ensure deadline is mapped
                 CompletedAt = task.CompletedAt,
-                IsOverdue = task.Deadline.HasValue && task.Deadline.Value < now && task.Status != TaskStatus.Completed,
+                IsOverdue = isOverdue,
                 CreatedAt = task.CreatedAt
             };
         }

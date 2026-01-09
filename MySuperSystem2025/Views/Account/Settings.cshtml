@@ -7,6 +7,22 @@
     <h1 class="h3 mb-0 fw-bold"><i class="bi bi-gear me-2"></i>Account Settings</h1>
 </div>
 
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
 <div class="row">
     <!-- Profile Settings -->
     <div class="col-lg-6 mb-4">
@@ -21,25 +37,25 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label asp-for="Profile.FirstName" class="form-label"></label>
-                            <input asp-for="Profile.FirstName" class="form-control" />
+                            <input asp-for="Profile.FirstName" name="FirstName" class="form-control" />
                             <span asp-validation-for="Profile.FirstName" class="text-danger small"></span>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label asp-for="Profile.LastName" class="form-label"></label>
-                            <input asp-for="Profile.LastName" class="form-control" />
+                            <input asp-for="Profile.LastName" name="LastName" class="form-control" />
                             <span asp-validation-for="Profile.LastName" class="text-danger small"></span>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="Profile.UserName" class="form-label"></label>
-                        <input asp-for="Profile.UserName" class="form-control" />
+                        <input asp-for="Profile.UserName" name="UserName" class="form-control" />
                         <span asp-validation-for="Profile.UserName" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="Profile.Email" class="form-label"></label>
-                        <input asp-for="Profile.Email" class="form-control" type="email" />
+                        <input asp-for="Profile.Email" name="Email" class="form-control" type="email" />
                         <span asp-validation-for="Profile.Email" class="text-danger small"></span>
                     </div>
 
@@ -75,20 +91,20 @@
 
                     <div class="mb-3">
                         <label asp-for="ChangePassword.CurrentPassword" class="form-label"></label>
-                        <input asp-for="ChangePassword.CurrentPassword" class="form-control" />
+                        <input asp-for="ChangePassword.CurrentPassword" name="CurrentPassword" class="form-control" />
                         <span asp-validation-for="ChangePassword.CurrentPassword" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
                         <label asp-for="ChangePassword.NewPassword" class="form-label"></label>
-                        <input asp-for="ChangePassword.NewPassword" class="form-control" />
+                        <input asp-for="ChangePassword.NewPassword" name="NewPassword" class="form-control" />
                         <span asp-validation-for="ChangePassword.NewPassword" class="text-danger small"></span>
                         <small class="text-muted">Minimum 8 characters, 1 uppercase, 1 number, 1 special character</small>
                     </div>
 
                     <div class="mb-4">
                         <label asp-for="ChangePassword.ConfirmPassword" class="form-label"></label>
-                        <input asp-for="ChangePassword.ConfirmPassword" class="form-control" />
+                        <input asp-for="ChangePassword.ConfirmPassword" name="ConfirmPassword" class="form-control" />
                         <span asp-validation-for="ChangePassword.ConfirmPassword" class="text-danger small"></span>
                     </div>
 
