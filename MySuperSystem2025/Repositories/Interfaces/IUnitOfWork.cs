@@ -11,6 +11,8 @@ namespace MySuperSystem2025.Repositories.Interfaces
         ITaskRepository Tasks { get; }
         IPasswordRepository Passwords { get; }
         IPasswordCategoryRepository PasswordCategories { get; }
+        ITimeEntryRepository TimeEntries { get; }
+        ITimeCategoryRepository TimeCategories { get; }
 
         Task<int> SaveChangesAsync();
     }

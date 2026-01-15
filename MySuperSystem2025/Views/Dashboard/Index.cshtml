@@ -80,6 +80,11 @@
         color: #dc2626;
     }
     
+    .module-icon-wrapper.time {
+        background: #fef3c7;
+        color: #d97706;
+    }
+    
     .module-title {
         font-size: 1.125rem;
         font-weight: 600;
@@ -215,6 +220,19 @@
                 Open Dashboard <i class="bi bi-arrow-right"></i>
             </span>
         </a>
+        
+        <a asp-controller="Time" asp-action="Index" class="module-card">
+            <div class="module-icon-wrapper time">
+                <i class="bi bi-clock-history"></i>
+            </div>
+            <h5 class="module-title">Time Tracker</h5>
+            <p class="module-description">
+                Track time spent on activities with category-based logging
+            </p>
+            <span class="module-link">
+                Open Dashboard <i class="bi bi-arrow-right"></i>
+            </span>
+        </a>
     </div>
 
     <!-- Quick Actions -->
@@ -232,6 +250,10 @@
             <a asp-controller="Password" asp-action="Create" class="action-btn">
                 <i class="bi bi-plus-circle"></i>
                 Store New Password
+            </a>
+            <a asp-controller="Time" asp-action="Create" class="action-btn">
+                <i class="bi bi-plus-circle"></i>
+                Add Time Entry
             </a>
         </div>
     </div>

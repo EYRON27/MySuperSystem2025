@@ -1,0 +1,111 @@
+@model MySuperSystem2025.Models.ViewModels.Time.TimeEntryListViewModel
+@{
+    ViewData["Title"] = "All Time Entries";
+}
+
+<div class="container-fluid" style="max-width: 1400px;">
+    <div class="my-4">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1 class="h3"><i class="bi bi-list-ul me-2"></i>All Time Entries</h1>
+                <p class="text-muted mb-0">View and manage all time entries</p>
+            </div>
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i>Add Entry
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Period</label>
+                    <select name="period" class="form-select">
+                        <option value="">All Time</option>
+                        <option value="daily" selected="@(Model.FilterPeriod == "daily")">Today</option>
+                        <option value="weekly" selected="@(Model.FilterPeriod == "weekly")">This Week</option>
+                        <option value="monthly" selected="@(Model.FilterPeriod == "monthly")">This Month</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Category</label>
+                    <select name="categoryId" class="form-select">
+                        <option value="">All Categories</option>
+                        @foreach (var category in Model.Categories)
+                        {
+                            <option value="@category.Id" selected="@(Model.FilterCategoryId == category.Id)">@category.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" name="startDate" value="@Model.FilterStartDate?.ToString("yyyy-MM-dd")" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">End Date</label>
+                    <input type="date" name="endDate" value="@Model.FilterEndDate?.ToString("yyyy-MM-dd")" class="form-control" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Apply</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="alert alert-info d-flex justify-content-between align-items-center">
+        <span><strong>@Model.TotalCount</strong> entries found</span>
+        <span>Total Duration: <strong>@Model.FormattedTotalDuration</strong></span>
+    </div>
+
+    <!-- Entries List -->
+    @if (Model.TimeEntries.Any())
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Category</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Duration</th>
+                            <th>Notes</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var entry in Model.TimeEntries)
+                        {
+                            <tr>
+                                <td><span class="badge bg-warning text-dark">@entry.CategoryName</span></td>
+                                <td>@entry.StartTime.ToString("MMM dd, HH:mm")</td>
+                                <td>@entry.EndTime.ToString("HH:mm")</td>
+                                <td><strong>@entry.FormattedDuration</strong></td>
+                                <td>@(string.IsNullOrEmpty(entry.Notes) ? "-" : entry.Notes)</td>
+                                <td class="text-end">
+                                    <a asp-action="Edit" asp-route-id="@entry.Id" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@entry.Id" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-clock-history" style="font-size: 4rem; opacity: 0.3;"></i>
+            <p class="text-muted mt-3">No time entries found</p>
+            <a asp-action="Create" class="btn btn-primary">Add Your First Entry</a>
+        </div>
+    }
+</div>

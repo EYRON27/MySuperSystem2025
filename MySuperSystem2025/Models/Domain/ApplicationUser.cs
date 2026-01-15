@@ -29,5 +29,7 @@ namespace MySuperSystem2025.Models.Domain
         public virtual ICollection<TaskItem> Tasks { get; set; } = new List<TaskItem>();
         public virtual ICollection<StoredPassword> StoredPasswords { get; set; } = new List<StoredPassword>();
         public virtual ICollection<PasswordCategory> PasswordCategories { get; set; } = new List<PasswordCategory>();
+        public virtual ICollection<TimeEntry> TimeEntries { get; set; } = new List<TimeEntry>();
+        public virtual ICollection<TimeCategory> TimeCategories { get; set; } = new List<TimeCategory>();
     }
 }

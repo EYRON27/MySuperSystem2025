@@ -14,6 +14,8 @@ namespace MySuperSystem2025.Repositories
         private ITaskRepository? _tasks;
         private IPasswordRepository? _passwords;
         private IPasswordCategoryRepository? _passwordCategories;
+        private ITimeEntryRepository? _timeEntries;
+        private ITimeCategoryRepository? _timeCategories;
 
         public UnitOfWork(ApplicationDbContext context)
         {
@@ -34,6 +36,12 @@ namespace MySuperSystem2025.Repositories
 
         public IPasswordCategoryRepository PasswordCategories => 
             _passwordCategories ??= new PasswordCategoryRepository(_context);
+
+        public ITimeEntryRepository TimeEntries => 
+            _timeEntries ??= new TimeEntryRepository(_context);
+
+        public ITimeCategoryRepository TimeCategories => 
+            _timeCategories ??= new TimeCategoryRepository(_context);
 
         public async Task<int> SaveChangesAsync()
         {

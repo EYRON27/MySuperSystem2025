@@ -1,0 +1,18 @@
+-- Verify Time Tracking tables exist
+SELECT 'TimeCategories' AS TableName, COUNT(*) AS Exists 
+FROM INFORMATION_SCHEMA.TABLES 
+WHERE TABLE_NAME = 'TimeCategories'
+
+UNION ALL
+
+SELECT 'TimeEntries' AS TableName, COUNT(*) AS Exists 
+FROM INFORMATION_SCHEMA.TABLES 
+WHERE TABLE_NAME = 'TimeEntries'
+GO
+
+-- Show column structure
+SELECT TABLE_NAME, COLUMN_NAME, DATA_TYPE, IS_NULLABLE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME IN ('TimeCategories', 'TimeEntries')
+ORDER BY TABLE_NAME, ORDINAL_POSITION
+GO

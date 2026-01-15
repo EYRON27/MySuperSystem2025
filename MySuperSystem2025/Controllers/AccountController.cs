@@ -15,6 +15,7 @@ namespace MySuperSystem2025.Controllers
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly IExpenseService _expenseService;
         private readonly IPasswordService _passwordService;
+        private readonly ITimeService _timeService;
         private readonly ILogger<AccountController> _logger;
 
         public AccountController(
@@ -22,12 +23,14 @@ namespace MySuperSystem2025.Controllers
             SignInManager<ApplicationUser> signInManager,
             IExpenseService expenseService,
             IPasswordService passwordService,
+            ITimeService timeService,
             ILogger<AccountController> logger)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _expenseService = expenseService;
             _passwordService = passwordService;
+            _timeService = timeService;
             _logger = logger;
         }
 
@@ -147,6 +150,7 @@ namespace MySuperSystem2025.Controllers
                 // Seed default categories
                 await _expenseService.SeedDefaultCategoriesAsync(user.Id);
                 await _passwordService.SeedDefaultCategoriesAsync(user.Id);
+                await _timeService.SeedDefaultCategoriesAsync(user.Id);
 
                 _logger.LogInformation("User {Email} registered successfully", model.Email);
 

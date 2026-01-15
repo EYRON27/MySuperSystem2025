@@ -161,6 +161,11 @@
                         <i class="bi bi-shield-lock"></i> Passwords
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Time" ? "active" : "")" asp-controller="Time" asp-action="Index">
+                        <i class="bi bi-clock-history"></i> Time Tracker
+                    </a>
+                </li>
                 <!-- Settings moved to bottom area near logout for quick access -->
             </ul>
             <div class="mt-auto p-3">

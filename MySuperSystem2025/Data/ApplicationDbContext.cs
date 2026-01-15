@@ -26,6 +26,10 @@ namespace MySuperSystem2025.Data
         public DbSet<StoredPassword> StoredPasswords { get; set; }
         public DbSet<PasswordCategory> PasswordCategories { get; set; }
 
+        // Time Tracking
+        public DbSet<TimeEntry> TimeEntries { get; set; }
+        public DbSet<TimeCategory> TimeCategories { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -36,6 +40,8 @@ namespace MySuperSystem2025.Data
             builder.Entity<TaskItem>().HasQueryFilter(t => !t.IsDeleted);
             builder.Entity<StoredPassword>().HasQueryFilter(p => !p.IsDeleted);
             builder.Entity<PasswordCategory>().HasQueryFilter(p => !p.IsDeleted);
+            builder.Entity<TimeEntry>().HasQueryFilter(t => !t.IsDeleted);
+            builder.Entity<TimeCategory>().HasQueryFilter(t => !t.IsDeleted);
             builder.Entity<ApplicationUser>().HasQueryFilter(u => !u.IsDeleted);
 
             // Configure relationships for Expense
@@ -100,6 +106,34 @@ namespace MySuperSystem2025.Data
             {
                 entity.HasOne(c => c.User)
                     .WithMany(u => u.PasswordCategories)
+                    .HasForeignKey(c => c.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(c => new { c.UserId, c.Name }).IsUnique();
+            });
+
+            // Configure relationships for TimeEntry
+            builder.Entity<TimeEntry>(entity =>
+            {
+                entity.HasOne(t => t.User)
+                    .WithMany(u => u.TimeEntries)
+                    .HasForeignKey(t => t.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(t => t.Category)
+                    .WithMany(c => c.TimeEntries)
+                    .HasForeignKey(t => t.CategoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(t => t.StartTime);
+                entity.HasIndex(t => t.UserId);
+            });
+
+            // Configure relationships for TimeCategory
+            builder.Entity<TimeCategory>(entity =>
+            {
+                entity.HasOne(c => c.User)
+                    .WithMany(u => u.TimeCategories)
                     .HasForeignKey(c => c.UserId)
                     .OnDelete(DeleteBehavior.Restrict);
 

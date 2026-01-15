@@ -62,6 +62,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IExpenseService, ExpenseService>();
 builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddScoped<ITimeService, TimeService>();
 builder.Services.AddSingleton<IEncryptionService, EncryptionService>();
 builder.Services.AddScoped<PdfService>();
 

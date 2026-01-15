@@ -1,0 +1,293 @@
+@model MySuperSystem2025.Models.ViewModels.Time.CreateTimeEntryViewModel
+@{
+    ViewData["Title"] = "Add Time Entry";
+    var categories = ViewBag.Categories as List<MySuperSystem2025.Models.ViewModels.Time.TimeCategoryViewModel>;
+}
+
+<style>
+    .form-container {
+        max-width: 700px;
+        margin: 0 auto;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-header h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+    
+    .form-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 2rem;
+    }
+    
+    .timer-section {
+        background: #fef3c7;
+        border: 1px solid #fde68a;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .timer-display {
+        font-size: 3rem;
+        font-weight: 600;
+        color: #92400e;
+        margin: 1rem 0;
+        font-variant-numeric: tabular-nums;
+    }
+    
+    .timer-buttons {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        margin-top: 1rem;
+    }
+    
+    .btn-timer {
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        border-radius: 6px;
+    }
+    
+    .btn-start {
+        background: #16a34a;
+        color: white;
+        border: none;
+    }
+    
+    .btn-start:hover {
+        background: #15803d;
+    }
+    
+    .btn-stop {
+        background: #dc2626;
+        color: white;
+        border: none;
+    }
+    
+    .btn-stop:hover {
+        background: #b91c1c;
+    }
+    
+    .form-divider {
+        text-align: center;
+        margin: 2rem 0;
+        position: relative;
+    }
+    
+    .form-divider::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 50%;
+        width: 100%;
+        height: 1px;
+        background: #e5e7eb;
+    }
+    
+    .form-divider span {
+        background: white;
+        padding: 0 1rem;
+        position: relative;
+        color: #6c757d;
+        font-size: 0.875rem;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control, .form-select {
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 0.625rem 0.875rem;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .text-danger {
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+    
+    .btn-primary {
+        background: #2563eb;
+        border-color: #2563eb;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+    }
+    
+    .btn-primary:hover {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+    }
+</style>
+
+<div class="form-container">
+    <div class="page-header">
+        <h1><i class="bi bi-clock me-2"></i>Add Time Entry</h1>
+        <p class="text-muted mb-0">Track time using timer or enter manually</p>
+    </div>
+
+    <div class="form-card">
+        <!-- Timer Section -->
+        <div class="timer-section">
+            <h5 class="mb-0">Quick Timer</h5>
+            <div class="timer-display" id="timerDisplay">00:00:00</div>
+            <div class="timer-buttons">
+                <button type="button" class="btn btn-timer btn-start" id="startBtn" onclick="startTimer()">
+                    <i class="bi bi-play-fill me-1"></i>Start
+                </button>
+                <button type="button" class="btn btn-timer btn-stop" id="stopBtn" onclick="stopTimer()" style="display: none;">
+                    <i class="bi bi-stop-fill me-1"></i>Stop
+                </button>
+            </div>
+            <small class="text-muted mt-2 d-block">Timer will auto-fill start and end times</small>
+        </div>
+
+        <div class="form-divider">
+            <span>OR ENTER MANUALLY</span>
+        </div>
+
+        <!-- Manual Entry Form -->
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="CategoryId" class="form-label"></label>
+                <select asp-for="CategoryId" class="form-select">
+                    <option value="">Select a category</option>
+                    @if (categories != null)
+                    {
+                        @foreach (var category in categories)
+                        {
+                            <option value="@category.Id">@category.Name</option>
+                        }
+                    }
+                </select>
+                <span asp-validation-for="CategoryId" class="text-danger"></span>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="StartTime" class="form-label"></label>
+                    <input asp-for="StartTime" type="datetime-local" class="form-control" id="startTimeInput" />
+                    <span asp-validation-for="StartTime" class="text-danger"></span>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label asp-for="EndTime" class="form-label"></label>
+                    <input asp-for="EndTime" type="datetime-local" class="form-control" id="endTimeInput" />
+                    <span asp-validation-for="EndTime" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="3" placeholder="Optional notes about this activity..."></textarea>
+                <span asp-validation-for="Notes" class="text-danger"></span>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle me-1"></i>Save Entry
+                </button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        let timerInterval = null;
+        let timerStartTime = null;
+        let elapsedSeconds = 0;
+
+        function startTimer() {
+            timerStartTime = new Date();
+            elapsedSeconds = 0;
+            
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'inline-block';
+            
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            elapsedSeconds++;
+            const hours = Math.floor(elapsedSeconds / 3600);
+            const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+            const seconds = elapsedSeconds % 60;
+            
+            document.getElementById('timerDisplay').textContent = 
+                String(hours).padStart(2, '0') + ':' + 
+                String(minutes).padStart(2, '0') + ':' + 
+                String(seconds).padStart(2, '0');
+        }
+
+        function stopTimer() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            
+            const endTime = new Date();
+            
+            // Format times for datetime-local input
+            const formatDateTime = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${day}T${hours}:${minutes}`;
+            };
+            
+            document.getElementById('startTimeInput').value = formatDateTime(timerStartTime);
+            document.getElementById('endTimeInput').value = formatDateTime(endTime);
+            
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('timerDisplay').textContent = '00:00:00';
+            elapsedSeconds = 0;
+            
+            // Scroll to form
+            document.querySelector('form').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Set default date-time to now
+        window.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            const formatDateTime = (date) => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${year}-${month}-${day}T${hours}:${minutes}`;
+            };
+            
+            if (!document.getElementById('startTimeInput').value) {
+                document.getElementById('startTimeInput').value = formatDateTime(now);
+            }
+            if (!document.getElementById('endTimeInput').value) {
+                document.getElementById('endTimeInput').value = formatDateTime(now);
+            }
+        });
+    </script>
+}
