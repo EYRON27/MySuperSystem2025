@@ -3,392 +3,264 @@
     ViewData["Title"] = "Expense Dashboard";
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 mb-0 fw-bold"><i class="bi bi-wallet2 me-2"></i>Expense Dashboard</h1>
-    <div>
-        <a asp-action="ExportPdf" asp-route-breakdown="@Model.BreakdownPeriod" asp-route-month="@Model.SelectedMonth" class="btn btn-outline-danger me-2" title="Export to PDF">
-            <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
-        </a>
-        <a asp-action="Categories" class="btn btn-outline-secondary me-2">
-            <i class="bi bi-tags me-1"></i>Categories
-        </a>
-        <a asp-action="Create" class="btn btn-primary">
-            <i class="bi bi-plus-circle me-1"></i>Add Expense
-        </a>
-    </div>
-</div>
+<link rel="stylesheet" href="~/css/unified-dashboard.css" asp-append-version="true" />
 
-<!-- Monthly Filter Dropdown -->
-@if (Model.AvailableMonths.Any())
-{
-    <div class="card mb-4">
-        <div class="card-body py-2">
+<div class="dashboard-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1><i class="bi bi-wallet2 me-2"></i>Expense Tracker</h1>
+                <p class="text-muted mb-0">Track and manage your expenses with category-based budgeting</p>
+            </div>
+            <div class="action-buttons">
+                <a asp-action="ExportPdf" asp-route-breakdown="@Model.BreakdownPeriod" asp-route-month="@Model.SelectedMonth" class="btn btn-outline-secondary" title="Export to PDF">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
+                </a>
+                <a asp-action="Categories" class="btn btn-outline-secondary">
+                    <i class="bi bi-tags me-1"></i>Categories
+                </a>
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Add Expense
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Filter -->
+    @if (Model.AvailableMonths.Any())
+    {
+        <div class="filter-section">
             <form method="get" class="row align-items-center">
                 <div class="col-auto">
-                    <label class="col-form-label fw-bold"><i class="bi bi-calendar3 me-2"></i>Filter by Month:</label>
+                    <label class="form-label fw-bold mb-0"><i class="bi bi-calendar3 me-2"></i>Filter by Month:</label>
                 </div>
                 <div class="col-auto" style="min-width: 150px;">
-                    <!-- add extra right padding so native caret doesn't overlap text -->
-                    <select name="month" class="form-select pe-4" onchange="this.form.submit()">
+                    <select name="month" class="form-select" onchange="this.form.submit()">
                         @foreach (var monthOption in Model.AvailableMonths)
                         {
-                            if (monthOption.IsSelected)
-                            {
-                                <option value="@monthOption.Value" selected>@monthOption.Display</option>
-                            }
-                            else
-                            {
-                                <option value="@monthOption.Value">@monthOption.Display</option>
-                            }
+                            <option value="@monthOption.Value" selected="@monthOption.IsSelected">@monthOption.Display</option>
                         }
                     </select>
                 </div>
                 <div class="col-auto">
                     <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-x-circle me-1"></i>Reset to Current
+                        <i class="bi bi-x-circle me-1"></i>Reset
                     </a>
                 </div>
             </form>
         </div>
-    </div>
-}
+    }
 
-<!-- Monthly Fixed Budget Summary -->
-@if (Model.TotalMonthlyFixedBudget > 0)
-{
-    <div class="row g-4 mb-4">
-        <div class="col-md-4">
-            <div class="card stat-card border-primary">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1 text-primary">Monthly Fixed Budget</h6>
-                            <h3 class="mb-0 fw-bold text-primary">&#8369;@Model.TotalMonthlyFixedBudget.ToString("N2")</h3>
-                            <small class="text-muted">Resets every month</small>
-                        </div>
-                        <i class="bi bi-calendar-check fs-1 text-primary opacity-50"></i>
-                    </div>
-                </div>
-            </div>
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-label">Today</div>
+            <div class="summary-value">?@Model.TodayTotal.ToString("N2")</div>
+            <div class="summary-count">@Model.TodayCount @(Model.TodayCount == 1 ? "expense" : "expenses")</div>
         </div>
-        <div class="col-md-4">
-            <div class="card stat-card border-danger">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1 text-danger">Spent This Month</h6>
-                            <h3 class="mb-0 fw-bold text-danger">&#8369;@Model.SelectedMonthTotal.ToString("N2")</h3>
-                            <small class="text-muted">@Model.BreakdownPeriodName</small>
-                        </div>
-                        <i class="bi bi-credit-card fs-1 text-danger opacity-50"></i>
-                    </div>
-                </div>
-            </div>
+        <div class="summary-card">
+            <div class="summary-label">This Week</div>
+            <div class="summary-value">?@Model.WeeklyTotal.ToString("N2")</div>
+            <div class="summary-count">@Model.WeeklyCount @(Model.WeeklyCount == 1 ? "expense" : "expenses")</div>
         </div>
-        <div class="col-md-4">
-            @{
-                var isLowMonthlyBalance = Model.SelectedMonthRemaining <= Model.TotalMonthlyFixedBudget * 0.2m;
-            }
-            <div class="card stat-card @(isLowMonthlyBalance ? "border-warning bg-warning bg-opacity-10" : "border-success")">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1 @(isLowMonthlyBalance ? "text-warning" : "text-success")">Remaining This Month</h6>
-                            <h3 class="mb-0 fw-bold @(isLowMonthlyBalance ? "text-warning" : "text-success")">&#8369;@Model.SelectedMonthRemaining.ToString("N2")</h3>
-                            <small class="text-muted">
-                                @if (isLowMonthlyBalance)
-                                {
-                                    <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Low balance warning!</span>
-                                }
-                                else
-                                {
-                                    <span>Available to spend</span>
-                                }
-                            </small>
-                        </div>
-                        <i class="bi bi-wallet2 fs-1 @(isLowMonthlyBalance ? "text-warning" : "text-success") opacity-50"></i>
-                    </div>
-                </div>
-            </div>
+        <div class="summary-card">
+            <div class="summary-label">This Month</div>
+            <div class="summary-value">?@Model.MonthlyTotal.ToString("N2")</div>
+            <div class="summary-count">@Model.MonthlyCount @(Model.MonthlyCount == 1 ? "expense" : "expenses")</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">This Year</div>
+            <div class="summary-value">?@Model.YearlyTotal.ToString("N2")</div>
+            <div class="summary-count">@Model.YearlyCount @(Model.YearlyCount == 1 ? "expense" : "expenses")</div>
         </div>
     </div>
-}
 
-<!-- Balance Overview Cards (Legacy - for non-monthly budgets) -->
-@if (Model.TotalBudget > 0 && Model.TotalMonthlyFixedBudget == 0)
-{
-    <div class="row g-4 mb-4">
-        <div class="col-md-4">
-            <div class="card stat-card border-primary">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1 text-primary">Total Budget</h6>
-                            <h3 class="mb-0 fw-bold text-primary">&#8369;@Model.TotalBudget.ToString("N2")</h3>
-                            <small class="text-muted">Across all categories</small>
-                        </div>
-                        <i class="bi bi-cash-stack fs-1 text-primary opacity-50"></i>
-                    </div>
+    <!-- Monthly Budget Section -->
+    @if (Model.TotalMonthlyFixedBudget > 0)
+    {
+        <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+            <div class="summary-card" style="border-left: 3px solid #2563eb;">
+                <div class="summary-label text-primary">Monthly Fixed Budget</div>
+                <div class="summary-value text-primary">?@Model.TotalMonthlyFixedBudget.ToString("N2")</div>
+                <div class="summary-count">Resets every month</div>
+            </div>
+            <div class="summary-card" style="border-left: 3px solid #dc2626;">
+                <div class="summary-label text-danger">Spent This Month</div>
+                <div class="summary-value text-danger">?@Model.SelectedMonthTotal.ToString("N2")</div>
+                <div class="summary-count">@Model.BreakdownPeriodName</div>
+            </div>
+            <div class="summary-card" style="border-left: 3px solid @(Model.SelectedMonthRemaining <= Model.TotalMonthlyFixedBudget * 0.2m ? "#f59e0b" : "#16a34a");">
+                @{
+                    var isLowMonthlyBalance = Model.SelectedMonthRemaining <= Model.TotalMonthlyFixedBudget * 0.2m;
+                }
+                <div class="summary-label @(isLowMonthlyBalance ? "text-warning" : "text-success")">Remaining This Month</div>
+                <div class="summary-value @(isLowMonthlyBalance ? "text-warning" : "text-success")">?@Model.SelectedMonthRemaining.ToString("N2")</div>
+                <div class="summary-count">
+                    @if (isLowMonthlyBalance)
+                    {
+                        <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Low balance</span>
+                    }
+                    else
+                    {
+                        <span>Available to spend</span>
+                    }
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card stat-card border-danger">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1 text-danger">Total Spent</h6>
-                            <h3 class="mb-0 fw-bold text-danger">&#8369;@Model.TotalExpenses.ToString("N2")</h3>
-                            <small class="text-muted">All time expenses</small>
-                        </div>
-                        <i class="bi bi-credit-card fs-1 text-danger opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card stat-card @(Model.TotalRemainingBalance <= Model.TotalBudget * 0.2m ? "border-warning bg-warning bg-opacity-10" : "border-success")">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="mb-1 @(Model.TotalRemainingBalance <= Model.TotalBudget * 0.2m ? "text-warning" : "text-success")">Remaining Balance</h6>
-                            <h3 class="mb-0 fw-bold @(Model.TotalRemainingBalance <= Model.TotalBudget * 0.2m ? "text-warning" : "text-success")">&#8369;@Model.TotalRemainingBalance.ToString("N2")</h3>
-                            <small class="text-muted">
-                                @if (Model.TotalRemainingBalance <= Model.TotalBudget * 0.2m)
-                                {
-                                    <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Low balance warning!</span>
-                                }
-                                else
-                                {
-                                    <span>Available to spend</span>
-                                }
-                            </small>
-                        </div>
-                        <i class="bi bi-wallet2 fs-1 @(Model.TotalRemainingBalance <= Model.TotalBudget * 0.2m ? "text-warning" : "text-success") opacity-50"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+    }
 
-<!-- Category Balance Cards -->
-@if (Model.CategoryBalances.Any(c => c.HasBudget || c.HasMonthlyBudget))
-{
-    <div class="card mb-4">
-        <div class="card-header">
-            <i class="bi bi-graph-up me-2"></i>Category Balances - @Model.BreakdownPeriodName
-        </div>
-        <div class="card-body">
+    <!-- Category Balances -->
+    @if (Model.CategoryBalances.Any(c => c.HasBudget || c.HasMonthlyBudget))
+    {
+        <div class="main-card">
+            <div class="card-header-unified">
+                <h5 class="card-title"><i class="bi bi-graph-up me-2"></i>Category Balances - @Model.BreakdownPeriodName</h5>
+            </div>
             <div class="row g-3">
                 @foreach (var category in Model.CategoryBalances.Where(c => c.HasBudget || c.HasMonthlyBudget))
                 {
                     <div class="col-md-4">
-                        <div class="card h-100 @(category.IsLowBalance ? "border-warning" : "")">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="fw-bold mb-0">@category.CategoryName</h6>
-                                    <div>
-                                        @if (category.HasMonthlyBudget)
-                                        {
-                                            <span class="badge bg-info me-1" title="Monthly Reset">
-                                                <i class="bi bi-arrow-repeat"></i>
-                                            </span>
-                                        }
-                                        @if (category.IsLowBalance)
-                                        {
-                                            <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i> Low</span>
-                                        }
-                                    </div>
-                                </div>
-                                <div class="mb-2">
-                                    <small class="text-muted">Budget: &#8369;@category.BudgetAmount.ToString("N2")</small>
+                        <div class="balance-card @(category.IsLowBalance ? "warning" : "")">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="fw-bold mb-0">@category.CategoryName</h6>
+                                <div>
                                     @if (category.HasMonthlyBudget)
                                     {
-                                        <br/><small class="text-info"><i class="bi bi-arrow-repeat me-1"></i>Monthly: &#8369;@category.MonthlyFixedBudget.ToString("N2")</small>
+                                        <span class="badge bg-info me-1" title="Monthly Reset">
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        </span>
+                                    }
+                                    @if (category.IsLowBalance)
+                                    {
+                                        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i></span>
                                     }
                                 </div>
-                                <div class="progress mb-2" style="height: 10px;">
-                                    <div class="progress-bar @(category.UsagePercentage > 80 ? "bg-danger" : category.UsagePercentage > 50 ? "bg-warning" : "bg-success")" 
-                                         role="progressbar" 
-                                         style="width: @Math.Min(category.UsagePercentage, 100)%"
-                                         aria-valuenow="@category.UsagePercentage" 
-                                         aria-valuemin="0" 
-                                         aria-valuemax="100">
-                                    </div>
+                            </div>
+                            <div class="mb-2">
+                                <small class="text-muted">Budget: ?@category.BudgetAmount.ToString("N2")</small>
+                                @if (category.HasMonthlyBudget)
+                                {
+                                    <br/><small class="text-info"><i class="bi bi-arrow-repeat me-1"></i>Monthly: ?@category.MonthlyFixedBudget.ToString("N2")</small>
+                                }
+                            </div>
+                            <div class="progress mb-2" style="height: 8px; border-radius: 4px;">
+                                <div class="progress-bar @(category.UsagePercentage > 80 ? "bg-danger" : category.UsagePercentage > 50 ? "bg-warning" : "bg-success")" 
+                                     role="progressbar" 
+                                     style="width: @Math.Min(category.UsagePercentage, 100)%">
                                 </div>
-                                <div class="d-flex justify-content-between">
-                                    <small class="text-danger">Spent: &#8369;@category.TotalExpenses.ToString("N2")</small>
-                                    <small class="@(category.IsLowBalance ? "text-warning fw-bold" : "text-success")">
-                                        Left: &#8369;@category.RemainingAmount.ToString("N2")
-                                    </small>
-                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <small class="text-danger">Spent: ?@category.TotalExpenses.ToString("N2")</small>
+                                <small class="@(category.IsLowBalance ? "text-warning fw-bold" : "text-success")">
+                                    Left: ?@category.RemainingAmount.ToString("N2")
+                                </small>
                             </div>
                         </div>
                     </div>
                 }
             </div>
         </div>
-    </div>
-}
+    }
 
-<!-- Summary Cards -->
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="card stat-card bg-primary text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-1 opacity-75">Today</h6>
-                        <h3 class="mb-0 fw-bold">&#8369;@Model.TodayTotal.ToString("N2")</h3>
-                        <small class="opacity-75">@Model.TodayCount expenses</small>
-                    </div>
-                    <i class="bi bi-calendar-day fs-1 opacity-50"></i>
+    <!-- Content Grid -->
+    <div class="content-grid">
+        <!-- Category Breakdown -->
+        <div class="main-card">
+            <div class="card-header-unified">
+                <h5 class="card-title">@Model.BreakdownPeriodName by Category</h5>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="bi bi-funnel me-1"></i>Filter
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "daily" ? "active" : "")" asp-action="Index" asp-route-breakdown="daily">Today</a></li>
+                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "weekly" ? "active" : "")" asp-action="Index" asp-route-breakdown="weekly">This Week</a></li>
+                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "monthly" ? "active" : "")" asp-action="Index" asp-route-breakdown="monthly">This Month</a></li>
+                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "yearly" ? "active" : "")" asp-action="Index" asp-route-breakdown="yearly">This Year</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "alltime" ? "active" : "")" asp-action="Index" asp-route-breakdown="alltime">All Time</a></li>
+                    </ul>
                 </div>
             </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card bg-success text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-1 opacity-75">This Week</h6>
-                        <h3 class="mb-0 fw-bold">&#8369;@Model.WeeklyTotal.ToString("N2")</h3>
-                        <small class="opacity-75">@Model.WeeklyCount expenses</small>
-                    </div>
-                    <i class="bi bi-calendar-week fs-1 opacity-50"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card bg-info text-white">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-1 opacity-75">This Month</h6>
-                        <h3 class="mb-0 fw-bold">&#8369;@Model.MonthlyTotal.ToString("N2")</h3>
-                        <small class="opacity-75">@Model.MonthlyCount expenses</small>
-                    </div>
-                    <i class="bi bi-calendar-month fs-1 opacity-50"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card bg-warning text-dark">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h6 class="mb-1 opacity-75">This Year</h6>
-                        <h3 class="mb-0 fw-bold">&#8369;@Model.YearlyTotal.ToString("N2")</h3>
-                        <small class="opacity-75">@Model.YearlyCount expenses</small>
-                    </div>
-                    <i class="bi bi-calendar fs-1 opacity-50"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="row g-4">
-<!-- Category Breakdown -->
-<div class="col-lg-4">
-    <div class="card h-100">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span><i class="bi bi-pie-chart me-2"></i>@Model.BreakdownPeriodName by Category</span>
-            <div class="dropdown">
-                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="breakdownPeriodDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-funnel me-1"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="breakdownPeriodDropdown">
-                    <li><a class="dropdown-item @(Model.BreakdownPeriod == "daily" ? "active" : "")" asp-action="Index" asp-route-breakdown="daily">Today</a></li>
-                    <li><a class="dropdown-item @(Model.BreakdownPeriod == "weekly" ? "active" : "")" asp-action="Index" asp-route-breakdown="weekly">This Week</a></li>
-                    <li><a class="dropdown-item @(Model.BreakdownPeriod == "monthly" ? "active" : "")" asp-action="Index" asp-route-breakdown="monthly">This Month</a></li>
-                    <li><a class="dropdown-item @(Model.BreakdownPeriod == "yearly" ? "active" : "")" asp-action="Index" asp-route-breakdown="yearly">This Year</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item @(Model.BreakdownPeriod == "alltime" ? "active" : "")" asp-action="Index" asp-route-breakdown="alltime">All Time</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="card-body">
             @if (Model.CategoryBreakdown.Any())
             {
-                @foreach (var category in Model.CategoryBreakdown)
-                {
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>@category.CategoryName</span>
-                            <span class="fw-bold">&#8369;@category.Total.ToString("N2")</span>
-                        </div>
-                        <div class="progress" style="height: 8px;">
-                            <div class="progress-bar" role="progressbar" style="width: @category.Percentage%"></div>
-                        </div>
-                        <small class="text-muted">@category.Percentage% of total</small>
-                    </div>
-                }
+                <ul class="item-list">
+                    @foreach (var category in Model.CategoryBreakdown)
+                    {
+                        <li class="item-list-entry">
+                            <div class="item-header">
+                                <div>
+                                    <div class="item-title">@category.CategoryName</div>
+                                    <div class="item-meta">@category.Count @(category.Count == 1 ? "expense" : "expenses")</div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold" style="font-size: 1.125rem; color: #1a1a1a;">?@category.Total.ToString("N2")</div>
+                                    <div class="item-meta">@category.Percentage%</div>
+                                </div>
+                            </div>
+                            <div class="progress" style="height: 6px; border-radius: 3px;">
+                                <div class="progress-bar bg-primary" style="width: @category.Percentage%"></div>
+                            </div>
+                        </li>
+                    }
+                </ul>
             }
             else
             {
-                <p class="text-muted text-center mb-0">No expenses for this period</p>
+                <div class="empty-state">
+                    <i class="bi bi-pie-chart"></i>
+                    <p>No expenses for this period</p>
+                </div>
+            }
+        </div>
+
+        <!-- Recent Expenses -->
+        <div class="main-card">
+            <div class="card-header-unified">
+                <h5 class="card-title">Recent Expenses</h5>
+                <a asp-action="List" class="btn btn-sm btn-outline-secondary">View All</a>
+            </div>
+
+            @if (Model.RecentExpenses.Any())
+            {
+                <ul class="item-list">
+                    @foreach (var expense in Model.RecentExpenses)
+                    {
+                        <li class="item-list-entry">
+                            <div class="item-header">
+                                <div>
+                                    <div class="item-title">@expense.Reason</div>
+                                    <div class="item-meta">
+                                        @expense.Date.ToString("MMM dd, yyyy") • <span class="badge badge-unified bg-secondary">@expense.CategoryName</span>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="fw-bold text-danger">?@expense.Amount.ToString("N2")</div>
+                                    <div class="btn-group-unified mt-1">
+                                        <a asp-action="Edit" asp-route-id="@expense.Id" class="btn btn-sm btn-outline-primary" title="Edit">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@expense.Id" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-wallet2"></i>
+                    <p>No expenses recorded yet</p>
+                    <a asp-action="Create" class="btn btn-primary">Add Your First Expense</a>
+                </div>
             }
         </div>
     </div>
 </div>
 
-    <!-- Recent Expenses -->
-    <div class="col-lg-8">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-clock-history me-2"></i>Recent Expenses</span>
-                <a asp-action="List" class="btn btn-sm btn-outline-primary">View All</a>
-            </div>
-            <div class="card-body p-0">
-                @if (Model.RecentExpenses.Any())
-                {
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Category</th>
-                                    <th>Reason</th>
-                                    <th class="text-end">Amount</th>
-                                    <th class="text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var expense in Model.RecentExpenses)
-                                {
-                                    <tr>
-                                        <td>@expense.Date.ToString("MMM dd, yyyy")</td>
-                                        <td><span class="badge bg-secondary">@expense.CategoryName</span></td>
-                                        <td>@expense.Reason</td>
-                                        <td class="text-end fw-bold">&#8369;@expense.Amount.ToString("N2")</td>
-                                        <td class="text-center">
-                                            <a asp-action="Edit" asp-route-id="@expense.Id" class="btn btn-sm btn-outline-primary">
-                                                <i class="bi bi-pencil"></i>
-                                            </a>
-                                            <a asp-action="Delete" asp-route-id="@expense.Id" class="btn btn-sm btn-outline-danger">
-                                                <i class="bi bi-trash"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
-                else
-                {
-                    <div class="text-center py-5">
-                        <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
-                        <p class="text-muted mt-2">No expenses recorded yet</p>
-                        <a asp-action="Create" class="btn btn-primary">Add Your First Expense</a>
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-</div>
