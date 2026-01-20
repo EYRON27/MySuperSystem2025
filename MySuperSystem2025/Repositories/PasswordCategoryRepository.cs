@@ -17,6 +17,7 @@ namespace MySuperSystem2025.Repositories
         public async Task<IEnumerable<PasswordCategory>> GetUserCategoriesAsync(string userId)
         {
             return await _dbSet
+                .Include(c => c.StoredPasswords)
                 .Where(c => c.UserId == userId)
                 .OrderBy(c => c.Name)
                 .ToListAsync();

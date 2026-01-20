@@ -398,19 +398,6 @@
         <div class="main-card">
             <div class="card-header">
                 <h5 class="card-title">Expenses by Category - @Model.BreakdownPeriodName</h5>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="breakdownPeriodDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-funnel me-1"></i>Filter
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="breakdownPeriodDropdown">
-                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "daily" ? "active" : "")" asp-action="Index" asp-route-breakdown="daily">Today</a></li>
-                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "weekly" ? "active" : "")" asp-action="Index" asp-route-breakdown="weekly">This Week</a></li>
-                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "monthly" ? "active" : "")" asp-action="Index" asp-route-breakdown="monthly">This Month</a></li>
-                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "yearly" ? "active" : "")" asp-action="Index" asp-route-breakdown="yearly">This Year</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "alltime" ? "active" : "")" asp-action="Index" asp-route-breakdown="alltime">All Time</a></li>
-                    </ul>
-                </div>
             </div>
 
             @if (Model.CategoryBreakdown.Any())
@@ -495,28 +482,5 @@
 </div>
 
 @section Scripts {
-    <script>
-        // Manually initialize Bootstrap dropdowns after page load
-        document.addEventListener('DOMContentLoaded', function() {
-            // Get the specific dropdown button
-            var dropdownButton = document.getElementById('breakdownPeriodDropdown');
-            
-            if (dropdownButton && typeof bootstrap !== 'undefined') {
-                // Force initialize this specific dropdown
-                var dropdown = new bootstrap.Dropdown(dropdownButton, {
-                    autoClose: true
-                });
-                
-                console.log('Expense filter dropdown initialized');
-                
-                // Add click event listener as fallback
-                dropdownButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    dropdown.toggle();
-                });
-            } else {
-                console.error('Bootstrap not loaded or dropdown element not found');
-            }
-        });
-    </script>
+    <!-- No filter dropdown needed in Expense Dashboard -->
 }
