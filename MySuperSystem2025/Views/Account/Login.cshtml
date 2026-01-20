@@ -3,54 +3,165 @@
     ViewData["Title"] = "Login";
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-5">
-        <div class="card shadow-lg border-0">
-            <div class="card-body p-5">
-                <div class="text-center mb-4">
-                    <img src="~/Picture/aarvievewatermark.png" alt="Aarvieve Logo" style="width:72px;height:72px;object-fit:contain;border-radius:8px;" />
-                    <h2 class="mt-3 fw-bold">Welcome Back</h2>
-                    <p class="text-muted">Sign in to your account</p>
+<style>
+    .login-container {
+        max-width: 450px;
+        margin: 0 auto;
+    }
+    
+    .login-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 2.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    
+    .login-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .login-logo {
+        width: 64px;
+        height: 64px;
+        object-fit: contain;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+    
+    .login-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 0.5rem;
+    }
+    
+    .login-subtitle {
+        color: #6c757d;
+        font-size: 0.95rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    
+    .form-label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #374151;
+        margin-bottom: 0.5rem;
+    }
+    
+    .input-with-icon {
+        position: relative;
+    }
+    
+    .input-with-icon .form-control {
+        padding-left: 2.75rem;
+        height: 48px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.95rem;
+    }
+    
+    .input-with-icon .form-control:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    
+    .input-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        font-size: 1.1rem;
+    }
+    
+    .btn-login {
+        background: #2563eb;
+        border-color: #2563eb;
+        color: white;
+        height: 48px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-login:hover {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+    
+    .register-link {
+        text-align: center;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .register-link a {
+        color: #2563eb;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    
+    .register-link a:hover {
+        color: #1d4ed8;
+        text-decoration: underline;
+    }
+</style>
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <img src="~/Picture/aarvievewatermark.png" alt="Aarvieve Logo" class="login-logo" />
+            <h1 class="login-title">Welcome Back</h1>
+            <p class="login-subtitle">Sign in to your account</p>
+        </div>
+
+        <form asp-action="Login" method="post">
+            <input type="hidden" asp-for="ReturnUrl" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <div class="form-group">
+                <label asp-for="Email" class="form-label">Email Address</label>
+                <div class="input-with-icon">
+                    <i class="bi bi-envelope input-icon"></i>
+                    <input asp-for="Email" class="form-control" placeholder="Enter your email" />
                 </div>
-
-                <form asp-action="Login" method="post">
-                    <input type="hidden" asp-for="ReturnUrl" />
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-
-                    <div class="mb-3">
-                        <label asp-for="Email" class="form-label">Email</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-envelope"></i></span>
-                            <input asp-for="Email" class="form-control" placeholder="Enter your email" />
-                        </div>
-                        <span asp-validation-for="Email" class="text-danger small"></span>
-                    </div>
-
-                    <div class="mb-3">
-                        <label asp-for="Password" class="form-label">Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-lock"></i></span>
-                            <input asp-for="Password" class="form-control" placeholder="Enter your password" />
-                        </div>
-                        <span asp-validation-for="Password" class="text-danger small"></span>
-                    </div>
-
-                    <div class="mb-4">
-                        <div class="form-check">
-                            <input asp-for="RememberMe" class="form-check-input" />
-                            <label asp-for="RememberMe" class="form-check-label">Remember me</label>
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100 py-2 mb-3">
-                        <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
-                    </button>
-                </form>
-
-                <div class="text-center">
-                    <p class="mb-0">Don't have an account? <a asp-action="Register" class="text-primary fw-bold">Register</a></p>
-                </div>
+                <span asp-validation-for="Email" class="text-danger small"></span>
             </div>
+
+            <div class="form-group">
+                <label asp-for="Password" class="form-label">Password</label>
+                <div class="input-with-icon">
+                    <i class="bi bi-lock input-icon"></i>
+                    <input asp-for="Password" class="form-control" placeholder="Enter your password" />
+                </div>
+                <span asp-validation-for="Password" class="text-danger small"></span>
+            </div>
+
+            <div class="form-check mb-4">
+                <input asp-for="RememberMe" class="form-check-input" />
+                <label asp-for="RememberMe" class="form-check-label" style="font-size: 0.875rem;">
+                    Remember me on this device
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-login w-100">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+            </button>
+        </form>
+
+        <div class="register-link">
+            <p class="mb-0" style="font-size: 0.95rem; color: #6c757d;">
+                Don't have an account? <a asp-action="Register">Create one now</a>
+            </p>
         </div>
     </div>
 </div>

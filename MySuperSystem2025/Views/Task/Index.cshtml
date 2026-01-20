@@ -4,13 +4,133 @@
     ViewData["Title"] = "Task Manager";
 }
 
-<link rel="stylesheet" href="~/css/unified-dashboard.css" asp-append-version="true" />
-
 <style>
-    /* Drag & Drop Styles */
+    .task-dashboard {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-header h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 0.5rem;
+    }
+    
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    .summary-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .summary-card.completed {
+        border-left: 4px solid #16a34a;
+        background: linear-gradient(to right, #f0fdf4, white);
+    }
+    
+    .summary-card.completed .summary-value {
+        color: #16a34a;
+    }
+    
+    .summary-card.ongoing {
+        border-left: 4px solid #f97316;
+        background: linear-gradient(to right, #fff7ed, white);
+    }
+    
+    .summary-card.ongoing .summary-value {
+        color: #f97316;
+    }
+    
+    .summary-card.overdue {
+        border-left: 4px solid #dc2626;
+        background: linear-gradient(to right, #fef2f2, white);
+    }
+    
+    .summary-card.overdue .summary-value {
+        color: #dc2626;
+    }
+    
+    .info-notice {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        padding: 1rem 1.25rem;
+        margin-bottom: 1.5rem;
+        color: #1e40af;
+        font-size: 0.875rem;
+    }
+    
+    .task-columns {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    @@media (max-width: 1024px) {
+        .task-columns {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .task-column {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        overflow: hidden;
+        min-height: 200px;
+    }
+    
+    .column-header {
+        padding: 1rem 1.25rem;
+        font-weight: 600;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .column-header.todo { background: #f3f4f6; color: #1a1a1a; }
+    .column-header.ongoing { background: #dbeafe; color: #1e40af; }
+    .column-header.completed { background: #d1fae5; color: #065f46; }
+    
+    .task-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
     .task-item {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid #f3f4f6;
         cursor: grab;
         transition: all 0.2s ease;
+    }
+    
+    .task-item:last-child {
+        border-bottom: none;
+    }
+    
+    .task-item:hover {
+        background: #f9fafb;
     }
     
     .task-item:active {
@@ -22,9 +142,19 @@
         transform: scale(0.98);
     }
     
+    .task-item.overdue {
+        background: #fef2f2;
+        border-left: 3px solid #dc2626;
+    }
+    
+    .task-item.completed-task {
+        cursor: default;
+        opacity: 0.8;
+    }
+    
     .task-column.drag-over {
-        background-color: rgba(37, 99, 235, 0.05);
-        border-color: #2563eb !important;
+        background-color: rgba(0, 123, 255, 0.05);
+        border: 2px dashed #2563eb;
     }
     
     .drop-zone {
@@ -37,30 +167,128 @@
         background-color: rgba(37, 99, 235, 0.05);
     }
     
-    .task-item.completed-task {
-        cursor: default;
-        opacity: 0.7;
+    .task-title {
+        font-weight: 500;
+        color: #1a1a1a;
+        margin-bottom: 0.5rem;
     }
     
-    .task-item.completed-task .item-title {
-        text-decoration: line-through;
+    .task-deadline {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .task-deadline.overdue {
+        color: #dc2626;
+    }
+    
+    .drag-hint {
+        font-size: 0.75rem;
+        color: #9ca3af;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-primary {
+        background: #2563eb;
+        border-color: #2563eb;
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .btn-primary:hover {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+    }
+    
+    .btn-outline-secondary, .btn-outline-danger {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    /* Confirmation Modal Styling */
+    .modal-confirm .modal-content {
+        border: none;
+        border-radius: 8px;
+    }
+    
+    .modal-confirm .modal-header {
+        border-bottom: 1px solid #e5e7eb;
+        padding: 1.25rem 1.5rem;
+    }
+    
+    .modal-confirm .modal-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+    
+    .modal-confirm .modal-body {
+        padding: 1.5rem;
+    }
+    
+    .modal-confirm .task-info {
+        background: #f9fafb;
+        border-radius: 6px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .modal-confirm .task-title {
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 0.5rem;
+    }
+    
+    .modal-confirm .task-deadline {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .modal-confirm .modal-footer {
+        border-top: 1px solid #e5e7eb;
+        padding: 1rem 1.5rem;
+    }
+    
+    .modal-confirm .btn {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: 6px;
     }
 </style>
 
-<div class="dashboard-container">
-    <!-- Page Header -->
+<div class="task-dashboard">
     <div class="page-header">
         <div class="d-flex justify-content-between align-items-start">
             <div>
                 <h1><i class="bi bi-check2-square me-2"></i>Task Manager</h1>
-                <p class="text-muted mb-0">Organize and track your tasks with drag-and-drop simplicity</p>
+                <p class="text-muted mb-0">Track tasks and manage workflow</p>
             </div>
             <div class="action-buttons">
-                <a asp-action="ExportPdf" class="btn btn-outline-secondary" title="Export to PDF">
-                    <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
-                </a>
                 <a asp-action="Create" class="btn btn-primary">
                     <i class="bi bi-plus-circle me-1"></i>New Task
+                </a>
+                <a asp-action="ExportPdf" class="btn btn-outline-danger">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
                 </a>
             </div>
         </div>
@@ -68,11 +296,8 @@
 
     <!-- Drag & Drop Hint -->
     <div class="info-notice">
-        <i class="bi bi-arrows-move"></i>
-        <div>
-            <strong>Tip:</strong> Drag and drop tasks between columns to change their status.
-        </div>
-        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        <i class="bi bi-arrows-move me-2"></i>
+        <strong>Tip:</strong> Drag and drop tasks between columns to change their status.
     </div>
 
     <!-- Summary Cards -->
@@ -82,258 +307,220 @@
             <div class="summary-value">@Model.PendingCount</div>
             <div class="summary-count">@(Model.PendingCount == 1 ? "task" : "tasks") pending</div>
         </div>
-        <div class="summary-card">
+        <div class="summary-card ongoing">
             <div class="summary-label">Ongoing</div>
             <div class="summary-value">@Model.OngoingCount</div>
             <div class="summary-count">@(Model.OngoingCount == 1 ? "task" : "tasks") in progress</div>
         </div>
-        <div class="summary-card">
+        <div class="summary-card completed">
             <div class="summary-label">Completed</div>
             <div class="summary-value">@Model.CompletedCount</div>
-            <div class="summary-count">@(Model.CompletedCount == 1 ? "task" : "tasks") done</div>
+            <div class="summary-count">@(Model.CompletedCount == 1 ? "task" : "tasks") finished</div>
         </div>
-        <div class="summary-card" style="border-left: 3px solid @(Model.OverdueCount > 0 ? "#dc2626" : "#e5e7eb");">
-            <div class="summary-label @(Model.OverdueCount > 0 ? "text-danger" : "")">Overdue</div>
-            <div class="summary-value @(Model.OverdueCount > 0 ? "text-danger" : "")">@Model.OverdueCount</div>
-            <div class="summary-count">
-                @if (Model.OverdueCount > 0)
-                {
-                    <span class="text-danger"><i class="bi bi-exclamation-triangle me-1"></i>Needs attention</span>
-                }
-                else
-                {
-                    <span>All on track</span>
-                }
-            </div>
+        <div class="summary-card overdue">
+            <div class="summary-label">Overdue</div>
+            <div class="summary-value">@Model.OverdueCount</div>
+            <div class="summary-count">@(Model.OverdueCount == 1 ? "task" : "tasks") past deadline</div>
         </div>
     </div>
 
-    <!-- Overdue Tasks Section -->
-    @if (Model.OverdueTasks.Any())
-    {
-        <div class="main-card" style="border-left: 3px solid #dc2626; background-color: #fef2f2;">
-            <div class="card-header-unified">
-                <h5 class="card-title text-danger">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Overdue Tasks (@Model.OverdueTasks.Count)
-                </h5>
-            </div>
-            <ul class="item-list">
-                @foreach (var task in Model.OverdueTasks)
-                {
-                    <li class="item-list-entry task-item" draggable="true" data-task-id="@task.Id" data-task-status="@((int)task.Status)">
-                        <div class="item-header">
-                            <div style="flex: 1;">
-                                <div class="item-title">
-                                    <i class="bi bi-grip-vertical me-1 text-muted" style="font-size: 0.75rem;"></i>
-                                    @task.Title
-                                </div>
-                                @if (task.Deadline.HasValue)
-                                {
-                                    <div class="item-meta text-danger">
-                                        <i class="bi bi-calendar-x me-1"></i>Due: @task.Deadline?.ToString("MMM dd, yyyy hh:mm tt")
-                                    </div>
-                                }
-                            </div>
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                    <i class="bi bi-three-dots"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    @if (task.Status == TaskStatus.ToDo)
-                                    {
-                                        <li>
-                                            <form asp-action="UpdateStatus" method="post">
-                                                <input type="hidden" name="id" value="@task.Id" />
-                                                <input type="hidden" name="status" value="@((int)TaskStatus.Ongoing)" />
-                                                <button type="submit" class="dropdown-item">Start Task</button>
-                                            </form>
-                                        </li>
-                                    }
-                                    <li>
-                                        <form asp-action="UpdateStatus" method="post">
-                                            <input type="hidden" name="id" value="@task.Id" />
-                                            <input type="hidden" name="status" value="@((int)TaskStatus.Completed)" />
-                                            <button type="submit" class="dropdown-item text-success">Complete</button>
-                                        </form>
-                                    </li>
-                                    <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@task.Id">Edit</a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@task.Id">Delete</a></li>
-                                </ul>
-                            </div>
-                        </div>
-                    </li>
-                }
-            </ul>
-        </div>
-    }
-
     <!-- Task Columns -->
-    <div class="row g-4">
+    <div class="task-columns">
         <!-- To Do Column -->
-        <div class="col-lg-4">
-            <div class="task-column" data-status="@((int)TaskStatus.ToDo)">
-                <div class="task-column-header" style="background-color: #f3f4f6; color: #1a1a1a;">
-                    <i class="bi bi-list-task me-2"></i>To Do (@Model.ToDoTasks.Count)
-                </div>
-                <div class="drop-zone" data-status="@((int)TaskStatus.ToDo)">
-                    @if (Model.ToDoTasks.Any())
-                    {
-                        <ul class="item-list">
-                            @foreach (var task in Model.ToDoTasks)
-                            {
-                                <li class="item-list-entry task-item @(task.IsOverdue ? "border-start border-danger border-3" : "")" draggable="true" data-task-id="@task.Id" data-task-status="@((int)task.Status)">
-                                    <div class="item-header">
-                                        <div style="flex: 1;">
-                                            <div class="item-title">
-                                                <i class="bi bi-grip-vertical me-1 text-muted" style="font-size: 0.75rem;"></i>
-                                                @task.Title
+        <div class="task-column" data-status="@((int)TaskStatus.ToDo)">
+            <div class="column-header todo">
+                <span><i class="bi bi-list-task me-2"></i>To Do</span>
+                <span class="badge bg-secondary">@Model.ToDoTasks.Count</span>
+            </div>
+            <div class="drop-zone" data-status="@((int)TaskStatus.ToDo)">
+                @if (Model.ToDoTasks.Any())
+                {
+                    <ul class="task-list">
+                        @foreach (var task in Model.ToDoTasks)
+                        {
+                            <li class="task-item @(task.IsOverdue ? "overdue" : "")" draggable="true" data-task-id="@task.Id" data-task-status="@((int)task.Status)">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div style="flex: 1;">
+                                        <div class="task-title">
+                                            <i class="bi bi-grip-vertical me-1 drag-hint"></i>
+                                            @task.Title
+                                        </div>
+                                        @if (task.Deadline.HasValue)
+                                        {
+                                            <div class="task-deadline @(task.IsOverdue ? "overdue" : "")">
+                                                <i class="bi bi-calendar me-1"></i>@task.Deadline?.ToString("MMM dd, yyyy hh:mm tt")
                                             </div>
-                                            @if (task.Deadline.HasValue)
-                                            {
-                                                <div class="item-meta @(task.IsOverdue ? "text-danger" : "")">
-                                                    <i class="bi bi-calendar me-1"></i>@task.Deadline?.ToString("MMM dd, yyyy")
-                                                </div>
-                                            }
-                                        </div>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                                <i class="bi bi-three-dots"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li>
-                                                    <form asp-action="UpdateStatus" method="post">
-                                                        <input type="hidden" name="id" value="@task.Id" />
-                                                        <input type="hidden" name="status" value="@((int)TaskStatus.Ongoing)" />
-                                                        <button type="submit" class="dropdown-item">Start Task</button>
-                                                    </form>
-                                                </li>
-                                                <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@task.Id">Edit</a></li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li><a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@task.Id">Delete</a></li>
-                                            </ul>
-                                        </div>
+                                        }
                                     </div>
-                                </li>
-                            }
-                        </ul>
-                    }
-                    else
-                    {
-                        <div class="empty-state">
-                            <i class="bi bi-inbox"></i>
-                            <p>No tasks - drag tasks here</p>
-                        </div>
-                    }
-                </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <form asp-action="UpdateStatus" method="post">
+                                                    <input type="hidden" name="id" value="@task.Id" />
+                                                    <input type="hidden" name="status" value="@((int)TaskStatus.Ongoing)" />
+                                                    <button type="submit" class="dropdown-item">Start Task</button>
+                                                </form>
+                                            </li>
+                                            <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@task.Id">Edit</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@task.Id">Delete</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-inbox"></i>
+                        <p>No tasks - drag tasks here</p>
+                    </div>
+                }
             </div>
         </div>
 
         <!-- Ongoing Column -->
-        <div class="col-lg-4">
-            <div class="task-column" data-status="@((int)TaskStatus.Ongoing)">
-                <div class="task-column-header" style="background-color: #dbeafe; color: #1e40af;">
-                    <i class="bi bi-arrow-repeat me-2"></i>Ongoing (@Model.OngoingTasks.Count)
-                </div>
-                <div class="drop-zone" data-status="@((int)TaskStatus.Ongoing)">
-                    @if (Model.OngoingTasks.Any())
-                    {
-                        <ul class="item-list">
-                            @foreach (var task in Model.OngoingTasks)
-                            {
-                                <li class="item-list-entry task-item @(task.IsOverdue ? "border-start border-danger border-3" : "")" draggable="true" data-task-id="@task.Id" data-task-status="@((int)task.Status)">
-                                    <div class="item-header">
-                                        <div style="flex: 1;">
-                                            <div class="item-title">
-                                                <i class="bi bi-grip-vertical me-1 text-muted" style="font-size: 0.75rem;"></i>
-                                                @task.Title
+        <div class="task-column" data-status="@((int)TaskStatus.Ongoing)">
+            <div class="column-header ongoing">
+                <span><i class="bi bi-arrow-repeat me-2"></i>Ongoing</span>
+                <span class="badge bg-primary">@Model.OngoingTasks.Count</span>
+            </div>
+            <div class="drop-zone" data-status="@((int)TaskStatus.Ongoing)">
+                @if (Model.OngoingTasks.Any())
+                {
+                    <ul class="task-list">
+                        @foreach (var task in Model.OngoingTasks)
+                        {
+                            <li class="task-item @(task.IsOverdue ? "overdue" : "")" draggable="true" data-task-id="@task.Id" data-task-status="@((int)task.Status)" data-task-title="@task.Title" data-task-deadline="@(task.Deadline?.ToString("MMM dd, yyyy hh:mm tt") ?? "No deadline")">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div style="flex: 1;">
+                                        <div class="task-title">
+                                            <i class="bi bi-grip-vertical me-1 drag-hint"></i>
+                                            @task.Title
+                                        </div>
+                                        @if (task.Deadline.HasValue)
+                                        {
+                                            <div class="task-deadline @(task.IsOverdue ? "overdue" : "")">
+                                                <i class="bi bi-calendar me-1"></i>@task.Deadline?.ToString("MMM dd, yyyy hh:mm tt")
                                             </div>
-                                            @if (task.Deadline.HasValue)
-                                            {
-                                                <div class="item-meta @(task.IsOverdue ? "text-danger" : "")">
-                                                    <i class="bi bi-calendar me-1"></i>@task.Deadline?.ToString("MMM dd, yyyy")
-                                                </div>
-                                            }
-                                        </div>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                                <i class="bi bi-three-dots"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li>
-                                                    <form asp-action="UpdateStatus" method="post">
-                                                        <input type="hidden" name="id" value="@task.Id" />
-                                                        <input type="hidden" name="status" value="@((int)TaskStatus.Completed)" />
-                                                        <button type="submit" class="dropdown-item text-success">Complete</button>
-                                                    </form>
-                                                </li>
-                                                <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@task.Id">Edit</a></li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li><a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@task.Id">Delete</a></li>
-                                            </ul>
-                                        </div>
+                                        }
                                     </div>
-                                </li>
-                            }
-                        </ul>
-                    }
-                    else
-                    {
-                        <div class="empty-state">
-                            <i class="bi bi-inbox"></i>
-                            <p>No tasks - drag tasks here</p>
-                        </div>
-                    }
-                </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <button type="button" class="dropdown-item text-success" 
+                                                        onclick="showCompleteConfirm(@task.Id, '@task.Title.Replace("'", "\\'"))', '@(task.Deadline?.ToString("MMM dd, yyyy hh:mm tt") ?? "No deadline")')">
+                                                    <i class="bi bi-check-circle me-1"></i>Complete
+                                                </button>
+                                            </li>
+                                            <li><a class="dropdown-item" asp-action="Edit" asp-route-id="@task.Id">Edit</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@task.Id">Delete</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-inbox"></i>
+                        <p>No tasks - drag tasks here</p>
+                    </div>
+                }
             </div>
         </div>
 
         <!-- Completed Column -->
-        <div class="col-lg-4">
-            <div class="task-column" data-status="@((int)TaskStatus.Completed)">
-                <div class="task-column-header" style="background-color: #dcfce7; color: #166534;">
-                    <i class="bi bi-check-circle me-2"></i>Completed (@Model.CompletedTasks.Count)
-                </div>
-                <div class="drop-zone" data-status="@((int)TaskStatus.Completed)">
-                    @if (Model.CompletedTasks.Any())
-                    {
-                        <ul class="item-list">
-                            @foreach (var task in Model.CompletedTasks)
-                            {
-                                <li class="item-list-entry task-item completed-task" data-task-id="@task.Id" data-task-status="@((int)task.Status)">
-                                    <div class="item-header">
-                                        <div style="flex: 1;">
-                                            <div class="item-title text-muted">@task.Title</div>
-                                            @if (task.CompletedAt.HasValue)
-                                            {
-                                                <div class="item-meta">
-                                                    <i class="bi bi-check me-1"></i>@task.CompletedAt?.ToString("MMM dd, yyyy")
-                                                </div>
-                                            }
-                                        </div>
-                                        <div class="dropdown">
-                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                                <i class="bi bi-three-dots"></i>
-                                            </button>
-                                            <ul class="dropdown-menu dropdown-menu-end">
-                                                <li><a class="dropdown-item" asp-action="Details" asp-route-id="@task.Id">View Details</a></li>
-                                                <li><hr class="dropdown-divider"></li>
-                                                <li><a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@task.Id">Delete</a></li>
-                                            </ul>
-                                        </div>
+        <div class="task-column" data-status="@((int)TaskStatus.Completed)">
+            <div class="column-header completed">
+                <span><i class="bi bi-check-circle me-2"></i>Completed</span>
+                <span class="badge bg-success">@Model.CompletedTasks.Count</span>
+            </div>
+            <div class="drop-zone" data-status="@((int)TaskStatus.Completed)">
+                @if (Model.CompletedTasks.Any())
+                {
+                    <ul class="task-list">
+                        @foreach (var task in Model.CompletedTasks)
+                        {
+                            <li class="task-item completed-task" data-task-id="@task.Id" data-task-status="@((int)task.Status)">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div style="flex: 1;">
+                                        <div class="task-title text-decoration-line-through text-muted">@task.Title</div>
+                                        @if (task.CompletedAt.HasValue)
+                                        {
+                                            <div class="task-deadline">
+                                                <i class="bi bi-check me-1"></i>@task.CompletedAt?.ToString("MMM dd, yyyy")
+                                            </div>
+                                        }
                                     </div>
-                                </li>
-                            }
-                        </ul>
-                    }
-                    else
-                    {
-                        <div class="empty-state">
-                            <i class="bi bi-inbox"></i>
-                            <p>No completed tasks</p>
-                        </div>
-                    }
+                                    <div class="dropdown">
+                                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" asp-action="Details" asp-route-id="@task.Id">View Details</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@task.Id">Delete</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <div class="empty-state">
+                        <i class="bi bi-inbox"></i>
+                        <p>No completed tasks</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Complete Task Confirmation Modal -->
+<div class="modal fade modal-confirm" id="completeTaskModal" tabindex="-1" aria-labelledby="completeTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="completeTaskModalLabel">
+                    <i class="bi bi-check-circle text-success me-2"></i>Complete Task
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Are you sure you want to mark this task as completed?</p>
+                <div class="task-info">
+                    <div class="task-title" id="confirmTaskTitle"></div>
+                    <div class="task-deadline" id="confirmTaskDeadline"></div>
                 </div>
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.875rem; color: #166534;">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Once completed, this task will be moved to the Completed column and marked as done.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="completeTaskForm" asp-action="UpdateStatus" method="post" class="d-inline">
+                    <input type="hidden" name="id" id="confirmTaskId" value="" />
+                    <input type="hidden" name="status" value="@((int)TaskStatus.Completed)" />
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle me-1"></i>Complete Task
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -341,12 +528,23 @@
 
 @section Scripts {
     <script>
+        // Complete Task Confirmation Modal
+        function showCompleteConfirm(taskId, taskTitle, taskDeadline) {
+            document.getElementById('confirmTaskId').value = taskId;
+            document.getElementById('confirmTaskTitle').textContent = taskTitle;
+            document.getElementById('confirmTaskDeadline').innerHTML = '<i class="bi bi-calendar me-1"></i>' + taskDeadline;
+            
+            var modal = new bootstrap.Modal(document.getElementById('completeTaskModal'));
+            modal.show();
+        }
+        
         document.addEventListener('DOMContentLoaded', function() {
             const taskItems = document.querySelectorAll('.task-item:not(.completed-task)');
             const dropZones = document.querySelectorAll('.drop-zone');
             
             let draggedItem = null;
             
+            // Add drag events to task items (except completed)
             taskItems.forEach(item => {
                 item.addEventListener('dragstart', function(e) {
                     draggedItem = this;
@@ -365,6 +563,7 @@
                 });
             });
             
+            // Add drop events to columns
             dropZones.forEach(zone => {
                 zone.addEventListener('dragover', function(e) {
                     e.preventDefault();
@@ -393,6 +592,14 @@
                     
                     if (currentStatus === newStatus) return;
                     
+                    // Show confirmation for completing task via drag
+                    if (newStatus === @((int)TaskStatus.Completed)) {
+                        const taskTitle = draggedItem.dataset.taskTitle || draggedItem.querySelector('.task-title').textContent.trim();
+                        const taskDeadline = draggedItem.dataset.taskDeadline || 'No deadline';
+                        showCompleteConfirm(taskId, taskTitle, taskDeadline);
+                        return;
+                    }
+                    
                     updateTaskStatus(taskId, newStatus);
                 });
             });
@@ -400,16 +607,11 @@
             function updateTaskStatus(taskId, newStatus) {
                 fetch('/Task/UpdateStatusAjax', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        id: taskId,
-                        status: newStatus
-                    })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: taskId, status: newStatus })
                 })
                 .then(response => response.json())
-                .then(data => {
+                .then data => {
                     if (data.success) {
                         location.reload();
                     } else {

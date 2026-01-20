@@ -1,50 +1,48 @@
 @model MySuperSystem2025.Models.ViewModels.Password.EditPasswordCategoryViewModel
 @{
-    ViewData["Title"] = "Edit Category";
+    ViewData["Title"] = "Edit Password Category";
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-pencil me-2"></i>Edit Password Category
+<link rel="stylesheet" href="~/css/unified-forms.css" />
+
+<div class="form-container">
+    <div class="page-header">
+        <h1><i class="bi bi-pencil me-2"></i>Edit Password Category</h1>
+        <p class="text-muted mb-0">Update category details</p>
+    </div>
+
+    <div class="form-card">
+        @if (Model.IsDefault)
+        {
+            <div class="info-box">
+                <i class="bi bi-info-circle"></i>
+                <small>This is a <strong>default category</strong>. You can modify its settings.</small>
             </div>
-            <div class="card-body">
-                <form asp-action="EditCategory" method="post">
-                    <input type="hidden" asp-for="Id" />
-                    <input type="hidden" asp-for="IsDefault" />
-                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+        }
 
-                    @if (Model.IsDefault)
-                    {
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle me-2"></i>This is a default category.
-                        </div>
-                    }
+        <form asp-action="EditCategory" method="post">
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
-                    <div class="mb-3">
-                        <label asp-for="Name" class="form-label">Category Name</label>
-                        <input asp-for="Name" class="form-control" maxlength="50" />
-                        <span asp-validation-for="Name" class="text-danger small"></span>
-                    </div>
-
-                    <div class="mb-4">
-                        <label asp-for="Description" class="form-label">Description (Optional)</label>
-                        <textarea asp-for="Description" class="form-control" rows="3" maxlength="200"></textarea>
-                        <span asp-validation-for="Description" class="text-danger small"></span>
-                    </div>
-
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="bi bi-check-circle me-1"></i>Update Category
-                        </button>
-                        <a asp-action="Categories" class="btn btn-outline-secondary">
-                            <i class="bi bi-x-circle me-1"></i>Cancel
-                        </a>
-                    </div>
-                </form>
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label">Category Name</label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
             </div>
-        </div>
+
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label">Description (Optional)</label>
+                <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle me-1"></i>Update Category
+                </button>
+                <a asp-action="Categories" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
     </div>
 </div>
 

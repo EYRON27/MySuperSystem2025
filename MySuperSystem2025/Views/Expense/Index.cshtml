@@ -3,25 +3,275 @@
     ViewData["Title"] = "Expense Dashboard";
 }
 
-<link rel="stylesheet" href="~/css/unified-dashboard.css" asp-append-version="true" />
+<style>
+    .expense-dashboard {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-header h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 0.5rem;
+    }
+    
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    .summary-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.5rem;
+    }
+    
+    .summary-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+    
+    .summary-value {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 0.25rem;
+    }
+    
+    .summary-count {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .budget-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    .budget-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.5rem;
+        border-left: 4px solid;
+    }
+    
+    .budget-card.primary { border-left-color: #2563eb; }
+    .budget-card.danger { border-left-color: #dc2626; }
+    .budget-card.success { border-left-color: #16a34a; }
+    .budget-card.warning { border-left-color: #d97706; }
+    
+    .filter-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .content-grid {
+        display: grid;
+        grid-template-columns: 400px 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    @@media (max-width: 1024px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .main-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.75rem;
+    }
+    
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+    
+    .category-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .category-item {
+        padding: 1rem 0;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .category-item:last-child {
+        border-bottom: none;
+    }
+    
+    .category-progress {
+        height: 8px;
+        background: #f3f4f6;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 0.5rem 0;
+    }
+    
+    .category-progress-bar {
+        height: 100%;
+        background: #2563eb;
+        transition: width 0.3s ease;
+    }
+    
+    .recent-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .recent-table th {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6c757d;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .recent-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 0.875rem;
+    }
+    
+    .recent-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .recent-table tr:hover {
+        background: #f9fafb;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-primary {
+        background: #2563eb;
+        border-color: #2563eb;
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .btn-primary:hover {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+    }
+    
+    .btn-outline-secondary, .btn-outline-danger {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    /* Consistent action button sizing */
+    .btn-action {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+    }
+    
+    .btn-action i {
+        font-size: 1rem;
+    }
+    
+    .btn-action.btn-sm {
+        padding: 0.375rem 0.625rem;
+        min-width: 32px;
+        height: 32px;
+    }
+    
+    .btn-action.btn-sm i {
+        font-size: 0.875rem;
+    }
+    
+    .category-balance-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .category-balance-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+    
+    .category-balance-card.warning {
+        border-color: #fbbf24;
+        background: linear-gradient(to bottom right, #fffbeb, white);
+    }
+</style>
 
-<div class="dashboard-container">
-    <!-- Page Header -->
+<div class="expense-dashboard">
     <div class="page-header">
         <div class="d-flex justify-content-between align-items-start">
             <div>
-                <h1><i class="bi bi-wallet2 me-2"></i>Expense Tracker</h1>
-                <p class="text-muted mb-0">Track and manage your expenses with category-based budgeting</p>
+                <h1><i class="bi bi-wallet2 me-2"></i>Expense Dashboard</h1>
+                <p class="text-muted mb-0">Track expenses and manage budgets</p>
             </div>
             <div class="action-buttons">
-                <a asp-action="ExportPdf" asp-route-breakdown="@Model.BreakdownPeriod" asp-route-month="@Model.SelectedMonth" class="btn btn-outline-secondary" title="Export to PDF">
-                    <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Add Expense
                 </a>
                 <a asp-action="Categories" class="btn btn-outline-secondary">
                     <i class="bi bi-tags me-1"></i>Categories
                 </a>
-                <a asp-action="Create" class="btn btn-primary">
-                    <i class="bi bi-plus-circle me-1"></i>Add Expense
+                <a asp-action="List" class="btn btn-outline-secondary">
+                    <i class="bi bi-list-ul me-1"></i>All Expenses
+                </a>
+                <a asp-action="ExportPdf" asp-route-breakdown="@Model.BreakdownPeriod" asp-route-month="@Model.SelectedMonth" class="btn btn-outline-danger">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
                 </a>
             </div>
         </div>
@@ -30,74 +280,43 @@
     <!-- Monthly Filter -->
     @if (Model.AvailableMonths.Any())
     {
-        <div class="filter-section">
-            <form method="get" class="row align-items-center">
-                <div class="col-auto">
-                    <label class="form-label fw-bold mb-0"><i class="bi bi-calendar3 me-2"></i>Filter by Month:</label>
-                </div>
-                <div class="col-auto" style="min-width: 150px;">
-                    <select name="month" class="form-select" onchange="this.form.submit()">
-                        @foreach (var monthOption in Model.AvailableMonths)
-                        {
-                            <option value="@monthOption.Value" selected="@monthOption.IsSelected">@monthOption.Display</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-auto">
-                    <a asp-action="Index" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-x-circle me-1"></i>Reset
-                    </a>
-                </div>
+        <div class="filter-card">
+            <form method="get" class="d-flex align-items-center gap-3">
+                <label class="mb-0 text-nowrap"><i class="bi bi-calendar3 me-2"></i>Filter by Month:</label>
+                <select name="month" class="form-select" style="max-width: 180px;" onchange="this.form.submit()">
+                    @foreach (var monthOption in Model.AvailableMonths)
+                    {
+                        <option value="@monthOption.Value" selected="@monthOption.IsSelected">@monthOption.Display</option>
+                    }
+                </select>
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x-circle me-1"></i>Reset
+                </a>
             </form>
         </div>
     }
 
-    <!-- Summary Cards -->
-    <div class="summary-grid">
-        <div class="summary-card">
-            <div class="summary-label">Today</div>
-            <div class="summary-value">?@Model.TodayTotal.ToString("N2")</div>
-            <div class="summary-count">@Model.TodayCount @(Model.TodayCount == 1 ? "expense" : "expenses")</div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-label">This Week</div>
-            <div class="summary-value">?@Model.WeeklyTotal.ToString("N2")</div>
-            <div class="summary-count">@Model.WeeklyCount @(Model.WeeklyCount == 1 ? "expense" : "expenses")</div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-label">This Month</div>
-            <div class="summary-value">?@Model.MonthlyTotal.ToString("N2")</div>
-            <div class="summary-count">@Model.MonthlyCount @(Model.MonthlyCount == 1 ? "expense" : "expenses")</div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-label">This Year</div>
-            <div class="summary-value">?@Model.YearlyTotal.ToString("N2")</div>
-            <div class="summary-count">@Model.YearlyCount @(Model.YearlyCount == 1 ? "expense" : "expenses")</div>
-        </div>
-    </div>
-
-    <!-- Monthly Budget Section -->
+    <!-- Monthly Budget Summary -->
     @if (Model.TotalMonthlyFixedBudget > 0)
     {
-        <div class="summary-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
-            <div class="summary-card" style="border-left: 3px solid #2563eb;">
-                <div class="summary-label text-primary">Monthly Fixed Budget</div>
-                <div class="summary-value text-primary">?@Model.TotalMonthlyFixedBudget.ToString("N2")</div>
+        <div class="budget-summary-grid">
+            <div class="budget-card primary">
+                <div class="summary-label">Monthly Fixed Budget</div>
+                <div class="summary-value text-primary">&#8369;@Model.TotalMonthlyFixedBudget.ToString("N2")</div>
                 <div class="summary-count">Resets every month</div>
             </div>
-            <div class="summary-card" style="border-left: 3px solid #dc2626;">
-                <div class="summary-label text-danger">Spent This Month</div>
-                <div class="summary-value text-danger">?@Model.SelectedMonthTotal.ToString("N2")</div>
+            <div class="budget-card danger">
+                <div class="summary-label">Spent This Month</div>
+                <div class="summary-value text-danger">&#8369;@Model.SelectedMonthTotal.ToString("N2")</div>
                 <div class="summary-count">@Model.BreakdownPeriodName</div>
             </div>
-            <div class="summary-card" style="border-left: 3px solid @(Model.SelectedMonthRemaining <= Model.TotalMonthlyFixedBudget * 0.2m ? "#f59e0b" : "#16a34a");">
-                @{
-                    var isLowMonthlyBalance = Model.SelectedMonthRemaining <= Model.TotalMonthlyFixedBudget * 0.2m;
-                }
-                <div class="summary-label @(isLowMonthlyBalance ? "text-warning" : "text-success")">Remaining This Month</div>
-                <div class="summary-value @(isLowMonthlyBalance ? "text-warning" : "text-success")">?@Model.SelectedMonthRemaining.ToString("N2")</div>
+            <div class="budget-card @(Model.SelectedMonthRemaining <= Model.TotalMonthlyFixedBudget * 0.2m ? "warning" : "success")">
+                <div class="summary-label">Remaining This Month</div>
+                <div class="summary-value @(Model.SelectedMonthRemaining <= Model.TotalMonthlyFixedBudget * 0.2m ? "text-warning" : "text-success")">
+                    &#8369;@Model.SelectedMonthRemaining.ToString("N2")
+                </div>
                 <div class="summary-count">
-                    @if (isLowMonthlyBalance)
+                    @if (Model.SelectedMonthRemaining <= Model.TotalMonthlyFixedBudget * 0.2m)
                     {
                         <span class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>Low balance</span>
                     }
@@ -110,52 +329,62 @@
         </div>
     }
 
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-label">Today</div>
+            <div class="summary-value">&#8369;@Model.TodayTotal.ToString("N2")</div>
+            <div class="summary-count">@Model.TodayCount @(Model.TodayCount == 1 ? "expense" : "expenses")</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">This Week</div>
+            <div class="summary-value">&#8369;@Model.WeeklyTotal.ToString("N2")</div>
+            <div class="summary-count">@Model.WeeklyCount @(Model.WeeklyCount == 1 ? "expense" : "expenses")</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">This Month</div>
+            <div class="summary-value">&#8369;@Model.MonthlyTotal.ToString("N2")</div>
+            <div class="summary-count">@Model.MonthlyCount @(Model.MonthlyCount == 1 ? "expense" : "expenses")</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">This Year</div>
+            <div class="summary-value">&#8369;@Model.YearlyTotal.ToString("N2")</div>
+            <div class="summary-count">@Model.YearlyCount @(Model.YearlyCount == 1 ? "expense" : "expenses")</div>
+        </div>
+    </div>
+
     <!-- Category Balances -->
     @if (Model.CategoryBalances.Any(c => c.HasBudget || c.HasMonthlyBudget))
     {
-        <div class="main-card">
-            <div class="card-header-unified">
-                <h5 class="card-title"><i class="bi bi-graph-up me-2"></i>Category Balances - @Model.BreakdownPeriodName</h5>
+        <div class="main-card" style="margin-bottom: 2rem;">
+            <div class="card-header">
+                <h5 class="card-title">Category Balances - @Model.BreakdownPeriodName</h5>
             </div>
-            <div class="row g-3">
+            <div class="category-balance-grid">
                 @foreach (var category in Model.CategoryBalances.Where(c => c.HasBudget || c.HasMonthlyBudget))
                 {
-                    <div class="col-md-4">
-                        <div class="balance-card @(category.IsLowBalance ? "warning" : "")">
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <h6 class="fw-bold mb-0">@category.CategoryName</h6>
-                                <div>
-                                    @if (category.HasMonthlyBudget)
-                                    {
-                                        <span class="badge bg-info me-1" title="Monthly Reset">
-                                            <i class="bi bi-arrow-repeat"></i>
-                                        </span>
-                                    }
-                                    @if (category.IsLowBalance)
-                                    {
-                                        <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i></span>
-                                    }
-                                </div>
-                            </div>
-                            <div class="mb-2">
-                                <small class="text-muted">Budget: ?@category.BudgetAmount.ToString("N2")</small>
+                    <div class="category-balance-card @(category.IsLowBalance ? "warning" : "")">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="fw-bold mb-0">@category.CategoryName</h6>
+                            <div>
                                 @if (category.HasMonthlyBudget)
                                 {
-                                    <br/><small class="text-info"><i class="bi bi-arrow-repeat me-1"></i>Monthly: ?@category.MonthlyFixedBudget.ToString("N2")</small>
+                                    <span class="badge bg-info me-1" title="Monthly Reset"><i class="bi bi-arrow-repeat"></i></span>
+                                }
+                                @if (category.IsLowBalance)
+                                {
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i></span>
                                 }
                             </div>
-                            <div class="progress mb-2" style="height: 8px; border-radius: 4px;">
-                                <div class="progress-bar @(category.UsagePercentage > 80 ? "bg-danger" : category.UsagePercentage > 50 ? "bg-warning" : "bg-success")" 
-                                     role="progressbar" 
-                                     style="width: @Math.Min(category.UsagePercentage, 100)%">
-                                </div>
-                            </div>
-                            <div class="d-flex justify-content-between">
-                                <small class="text-danger">Spent: ?@category.TotalExpenses.ToString("N2")</small>
-                                <small class="@(category.IsLowBalance ? "text-warning fw-bold" : "text-success")">
-                                    Left: ?@category.RemainingAmount.ToString("N2")
-                                </small>
-                            </div>
+                        </div>
+                        <div class="category-progress">
+                            <div class="category-progress-bar" style="width: @Math.Min(category.UsagePercentage, 100)%; background: @(category.UsagePercentage > 80 ? "#dc2626" : category.UsagePercentage > 50 ? "#d97706" : "#16a34a");"></div>
+                        </div>
+                        <div class="d-flex justify-content-between" style="font-size: 0.875rem;">
+                            <span class="text-muted">Budget: &#8369;@category.BudgetAmount.ToString("N2")</span>
+                            <span class="fw-bold @(category.IsLowBalance ? "text-warning" : "text-success")">
+                                Left: &#8369;@category.RemainingAmount.ToString("N2")
+                            </span>
                         </div>
                     </div>
                 }
@@ -167,13 +396,13 @@
     <div class="content-grid">
         <!-- Category Breakdown -->
         <div class="main-card">
-            <div class="card-header-unified">
-                <h5 class="card-title">@Model.BreakdownPeriodName by Category</h5>
+            <div class="card-header">
+                <h5 class="card-title">Expenses by Category - @Model.BreakdownPeriodName</h5>
                 <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="breakdownPeriodDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="bi bi-funnel me-1"></i>Filter
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="breakdownPeriodDropdown">
                         <li><a class="dropdown-item @(Model.BreakdownPeriod == "daily" ? "active" : "")" asp-action="Index" asp-route-breakdown="daily">Today</a></li>
                         <li><a class="dropdown-item @(Model.BreakdownPeriod == "weekly" ? "active" : "")" asp-action="Index" asp-route-breakdown="weekly">This Week</a></li>
                         <li><a class="dropdown-item @(Model.BreakdownPeriod == "monthly" ? "active" : "")" asp-action="Index" asp-route-breakdown="monthly">This Month</a></li>
@@ -186,23 +415,18 @@
 
             @if (Model.CategoryBreakdown.Any())
             {
-                <ul class="item-list">
+                <ul class="category-list">
                     @foreach (var category in Model.CategoryBreakdown)
                     {
-                        <li class="item-list-entry">
-                            <div class="item-header">
-                                <div>
-                                    <div class="item-title">@category.CategoryName</div>
-                                    <div class="item-meta">@category.Count @(category.Count == 1 ? "expense" : "expenses")</div>
-                                </div>
-                                <div class="text-end">
-                                    <div class="fw-bold" style="font-size: 1.125rem; color: #1a1a1a;">?@category.Total.ToString("N2")</div>
-                                    <div class="item-meta">@category.Percentage%</div>
-                                </div>
+                        <li class="category-item">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span style="font-weight: 500; color: #1a1a1a;">@category.CategoryName</span>
+                                <span style="font-weight: 600; color: #1a1a1a;">&#8369;@category.Total.ToString("N2")</span>
                             </div>
-                            <div class="progress" style="height: 6px; border-radius: 3px;">
-                                <div class="progress-bar bg-primary" style="width: @category.Percentage%"></div>
+                            <div class="category-progress">
+                                <div class="category-progress-bar" style="width: @category.Percentage%;"></div>
                             </div>
+                            <small style="color: #6c757d;">@category.Percentage% of total • @category.Count @(category.Count == 1 ? "expense" : "expenses")</small>
                         </li>
                     }
                 </ul>
@@ -218,44 +442,50 @@
 
         <!-- Recent Expenses -->
         <div class="main-card">
-            <div class="card-header-unified">
+            <div class="card-header">
                 <h5 class="card-title">Recent Expenses</h5>
-                <a asp-action="List" class="btn btn-sm btn-outline-secondary">View All</a>
+                <a asp-action="List" class="btn btn-sm btn-outline-primary">View All</a>
             </div>
 
             @if (Model.RecentExpenses.Any())
             {
-                <ul class="item-list">
-                    @foreach (var expense in Model.RecentExpenses)
-                    {
-                        <li class="item-list-entry">
-                            <div class="item-header">
-                                <div>
-                                    <div class="item-title">@expense.Reason</div>
-                                    <div class="item-meta">
-                                        @expense.Date.ToString("MMM dd, yyyy") • <span class="badge badge-unified bg-secondary">@expense.CategoryName</span>
-                                    </div>
-                                </div>
-                                <div class="text-end">
-                                    <div class="fw-bold text-danger">?@expense.Amount.ToString("N2")</div>
-                                    <div class="btn-group-unified mt-1">
-                                        <a asp-action="Edit" asp-route-id="@expense.Id" class="btn btn-sm btn-outline-primary" title="Edit">
+                <table class="recent-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Category</th>
+                            <th>Reason</th>
+                            <th style="text-align: right;">Amount</th>
+                            <th style="text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var expense in Model.RecentExpenses)
+                        {
+                            <tr>
+                                <td>@expense.Date.ToString("MMM dd, yyyy")</td>
+                                <td><span class="badge bg-secondary">@expense.CategoryName</span></td>
+                                <td>@expense.Reason</td>
+                                <td style="text-align: right; font-weight: 600;">&#8369;@expense.Amount.ToString("N2")</td>
+                                <td style="text-align: center; white-space: nowrap;">
+                                    <div class="d-flex justify-content-center gap-1">
+                                        <a asp-action="Edit" asp-route-id="@expense.Id" class="btn btn-action btn-sm btn-outline-primary" title="Edit">
                                             <i class="bi bi-pencil"></i>
                                         </a>
-                                        <a asp-action="Delete" asp-route-id="@expense.Id" class="btn btn-sm btn-outline-danger" title="Delete">
+                                        <a asp-action="Delete" asp-route-id="@expense.Id" class="btn btn-action btn-sm btn-outline-danger" title="Delete">
                                             <i class="bi bi-trash"></i>
                                         </a>
                                     </div>
-                                </div>
-                            </div>
-                        </li>
-                    }
-                </ul>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             }
             else
             {
                 <div class="empty-state">
-                    <i class="bi bi-wallet2"></i>
+                    <i class="bi bi-inbox"></i>
                     <p>No expenses recorded yet</p>
                     <a asp-action="Create" class="btn btn-primary">Add Your First Expense</a>
                 </div>
@@ -264,3 +494,29 @@
     </div>
 </div>
 
+@section Scripts {
+    <script>
+        // Manually initialize Bootstrap dropdowns after page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get the specific dropdown button
+            var dropdownButton = document.getElementById('breakdownPeriodDropdown');
+            
+            if (dropdownButton && typeof bootstrap !== 'undefined') {
+                // Force initialize this specific dropdown
+                var dropdown = new bootstrap.Dropdown(dropdownButton, {
+                    autoClose: true
+                });
+                
+                console.log('Expense filter dropdown initialized');
+                
+                // Add click event listener as fallback
+                dropdownButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    dropdown.toggle();
+                });
+            } else {
+                console.error('Bootstrap not loaded or dropdown element not found');
+            }
+        });
+    </script>
+}
