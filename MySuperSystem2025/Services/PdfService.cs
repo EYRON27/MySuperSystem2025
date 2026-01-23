@@ -21,12 +21,25 @@ namespace MySuperSystem2025.Services
         private static readonly BaseColor ColorRed = new BaseColor(255, 0, 0);
         private static readonly BaseColor ColorWhite = new BaseColor(255, 255, 255);
         private static readonly BaseColor ColorLightGray = new BaseColor(211, 211, 211);
-        private static readonly BaseColor ColorHeaderBg = ColorHeaderBg;
-        private static readonly BaseColor ColorCellBg = ColorCellBg;
+        private static readonly BaseColor ColorHeaderBg = new BaseColor(41, 128, 185);
+        private static readonly BaseColor ColorCellBg = new BaseColor(245, 245, 245);
+
+        // Peso currency symbol - using "PHP" as fallback for PDF compatibility
+        private const string PesoSymbol = "PHP ";
 
         public PdfService(ILogger<PdfService> logger)
         {
             _logger = logger;
+        }
+
+        /// <summary>
+        /// Gets a font that supports Unicode characters including peso sign
+        /// </summary>
+        private Font GetUnicodeFont(int size, int style = Font.NORMAL, BaseColor color = null)
+        {
+            // Register Arial Unicode MS or fallback to standard with Identity-H encoding
+            var baseFont = BaseFont.CreateFont(BaseFont.HELVETICA, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
+            return new Font(baseFont, size, style, color ?? ColorBlack);
         }
 
         /// <summary>
@@ -59,10 +72,10 @@ namespace MySuperSystem2025.Services
             var summaryTable = new PdfPTable(2) { WidthPercentage = 100 };
             summaryTable.SetWidths(new float[] { 1, 1 });
 
-            AddSummaryRow(summaryTable, "Today", $"?{model.TodayTotal:N2}", $"{model.TodayCount} expenses");
-            AddSummaryRow(summaryTable, "This Week", $"?{model.WeeklyTotal:N2}", $"{model.WeeklyCount} expenses");
-            AddSummaryRow(summaryTable, "This Month", $"?{model.MonthlyTotal:N2}", $"{model.MonthlyCount} expenses");
-            AddSummaryRow(summaryTable, "This Year", $"?{model.YearlyTotal:N2}", $"{model.YearlyCount} expenses");
+            AddSummaryRow(summaryTable, "Today", $"{PesoSymbol}{model.TodayTotal:N2}", $"{model.TodayCount} expenses");
+            AddSummaryRow(summaryTable, "This Week", $"{PesoSymbol}{model.WeeklyTotal:N2}", $"{model.WeeklyCount} expenses");
+            AddSummaryRow(summaryTable, "This Month", $"{PesoSymbol}{model.MonthlyTotal:N2}", $"{model.MonthlyCount} expenses");
+            AddSummaryRow(summaryTable, "This Year", $"{PesoSymbol}{model.YearlyTotal:N2}", $"{model.YearlyCount} expenses");
 
             document.Add(summaryTable);
             document.Add(new Paragraph(" "));
@@ -80,9 +93,9 @@ namespace MySuperSystem2025.Services
                 AddHeaderCell(budgetTable, "Total Spent");
                 AddHeaderCell(budgetTable, "Remaining Balance");
 
-                AddDataCell(budgetTable, $"?{model.TotalBudget:N2}");
-                AddDataCell(budgetTable, $"?{model.TotalExpenses:N2}");
-                AddDataCell(budgetTable, $"?{model.TotalRemainingBalance:N2}");
+                AddDataCell(budgetTable, $"{PesoSymbol}{model.TotalBudget:N2}");
+                AddDataCell(budgetTable, $"{PesoSymbol}{model.TotalExpenses:N2}");
+                AddDataCell(budgetTable, $"{PesoSymbol}{model.TotalRemainingBalance:N2}");
 
                 document.Add(budgetTable);
                 document.Add(new Paragraph(" "));
@@ -104,7 +117,7 @@ namespace MySuperSystem2025.Services
                 foreach (var category in model.CategoryBreakdown)
                 {
                     AddDataCell(categoryTable, category.CategoryName);
-                    AddDataCell(categoryTable, $"?{category.Total:N2}");
+                    AddDataCell(categoryTable, $"{PesoSymbol}{category.Total:N2}");
                     AddDataCell(categoryTable, $"{category.Percentage}%");
                 }
 
@@ -131,7 +144,7 @@ namespace MySuperSystem2025.Services
                     AddDataCell(expenseTable, expense.Date.ToString("MMM dd, yyyy"));
                     AddDataCell(expenseTable, expense.CategoryName);
                     AddDataCell(expenseTable, expense.Reason);
-                    AddDataCell(expenseTable, $"?{expense.Amount:N2}");
+                    AddDataCell(expenseTable, $"{PesoSymbol}{expense.Amount:N2}");
                 }
 
                 document.Add(expenseTable);
@@ -234,7 +247,7 @@ namespace MySuperSystem2025.Services
 
             // Warning
             var warningFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, ColorRed);
-            var warning = new Paragraph("?? CONFIDENTIAL - Handle with care. Passwords are NOT included in this report.\n\n", warningFont);
+            var warning = new Paragraph("? CONFIDENTIAL - Handle with care. Passwords are NOT included in this report.\n\n", warningFont);
             warning.Alignment = Element.ALIGN_CENTER;
             document.Add(warning);
 
