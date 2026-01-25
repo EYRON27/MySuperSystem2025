@@ -13,6 +13,7 @@ namespace MySuperSystem2025.Repositories.Interfaces
         IPasswordCategoryRepository PasswordCategories { get; }
         ITimeEntryRepository TimeEntries { get; }
         ITimeCategoryRepository TimeCategories { get; }
+        IFoodEntryRepository FoodEntries { get; }
 
         Task<int> SaveChangesAsync();
     }

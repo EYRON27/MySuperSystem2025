@@ -1,0 +1,457 @@
+@model MySuperSystem2025.Models.ViewModels.Food.FoodDashboardViewModel
+@{
+    ViewData["Title"] = "Food Tracker";
+}
+
+<style>
+    .food-dashboard {
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+    }
+    
+    .page-header h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 0.5rem;
+    }
+    
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    .summary-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.5rem;
+    }
+    
+    .summary-card.highlight {
+        border-left: 4px solid #16a34a;
+    }
+    
+    .summary-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+    }
+    
+    .summary-value {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 0.25rem;
+    }
+    
+    .summary-count {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .macro-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    @@media (max-width: 768px) {
+        .macro-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    .macro-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.25rem;
+        text-align: center;
+    }
+    
+    .macro-card.calories {
+        border-top: 3px solid #dc2626;
+    }
+    
+    .macro-card.protein {
+        border-top: 3px solid #2563eb;
+    }
+    
+    .macro-card.carbs {
+        border-top: 3px solid #d97706;
+    }
+    
+    .macro-card.fats {
+        border-top: 3px solid #7c3aed;
+    }
+    
+    .macro-icon {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .macro-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+    
+    .macro-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    @@media (max-width: 1024px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .main-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 1.75rem;
+    }
+    
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .card-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+    
+    .meal-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .meal-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .meal-item:last-child {
+        border-bottom: none;
+    }
+    
+    .meal-info {
+        flex: 1;
+    }
+    
+    .meal-name {
+        font-weight: 500;
+        color: #1a1a1a;
+        margin-bottom: 0.25rem;
+    }
+    
+    .meal-count {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    
+    .meal-calories {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        text-align: right;
+    }
+    
+    .meal-percentage {
+        font-size: 0.875rem;
+        color: #6c757d;
+        text-align: right;
+    }
+    
+    .recent-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .recent-item {
+        padding: 1rem;
+        border-bottom: 1px solid #f3f4f6;
+    }
+    
+    .recent-item:last-child {
+        border-bottom: none;
+    }
+    
+    .recent-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        margin-bottom: 0.5rem;
+    }
+    
+    .recent-name {
+        font-weight: 500;
+        color: #1a1a1a;
+    }
+    
+    .recent-calories {
+        font-weight: 600;
+        color: #dc2626;
+    }
+    
+    .recent-meta {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+    }
+    
+    .recent-macros {
+        font-size: 0.75rem;
+        color: #6c757d;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #6c757d;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.3;
+    }
+    
+    .action-buttons {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-primary {
+        background: #16a34a;
+        border-color: #16a34a;
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .btn-primary:hover {
+        background: #15803d;
+        border-color: #15803d;
+    }
+    
+    .btn-outline-secondary {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .btn-outline-danger {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+</style>
+
+<div class="food-dashboard">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1><i class="bi bi-egg-fried me-2"></i>Food Tracker</h1>
+                <p class="text-muted mb-0">Track your daily nutrition and monitor your health</p>
+            </div>
+            <div class="action-buttons">
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-1"></i>Add Food
+                </a>
+                <a asp-action="List" class="btn btn-outline-secondary">
+                    <i class="bi bi-list-ul me-1"></i>All Entries
+                </a>
+                <a asp-action="ExportPdf" asp-route-period="@Model.BreakdownPeriod" class="btn btn-outline-danger">
+                    <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Macros -->
+    <div class="macro-grid">
+        <div class="macro-card calories">
+            <div class="macro-icon"><i class="bi bi-fire text-danger"></i></div>
+            <div class="macro-value">@Model.TodayCalories</div>
+            <div class="macro-label">Calories Today</div>
+        </div>
+        <div class="macro-card protein">
+            <div class="macro-icon"><i class="bi bi-lightning-charge text-primary"></i></div>
+            <div class="macro-value">@Model.TodayProtein.ToString("N0")g</div>
+            <div class="macro-label">Protein</div>
+        </div>
+        <div class="macro-card carbs">
+            <div class="macro-icon"><i class="bi bi-grain text-warning"></i></div>
+            <div class="macro-value">@Model.TodayCarbs.ToString("N0")g</div>
+            <div class="macro-label">Carbs</div>
+        </div>
+        <div class="macro-card fats">
+            <div class="macro-icon"><i class="bi bi-droplet text-purple"></i></div>
+            <div class="macro-value">@Model.TodayFats.ToString("N0")g</div>
+            <div class="macro-label">Fats</div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-grid">
+        <div class="summary-card highlight">
+            <div class="summary-label">Today</div>
+            <div class="summary-value">@Model.TodayCalories kcal</div>
+            <div class="summary-count">@Model.TodayMealCount @(Model.TodayMealCount == 1 ? "meal" : "meals")</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">This Week</div>
+            <div class="summary-value">@Model.WeeklyCalories kcal</div>
+            <div class="summary-count">@Model.WeeklyMealCount @(Model.WeeklyMealCount == 1 ? "meal" : "meals")</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">This Month</div>
+            <div class="summary-value">@Model.MonthlyCalories kcal</div>
+            <div class="summary-count">@Model.MonthlyMealCount @(Model.MonthlyMealCount == 1 ? "meal" : "meals")</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-label">Daily Average</div>
+            <div class="summary-value">@Model.AverageDailyCalories kcal</div>
+            <div class="summary-count">@Model.BreakdownPeriodName</div>
+        </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid">
+        <!-- Meal Type Breakdown -->
+        <div class="main-card">
+            <div class="card-header">
+                <h5 class="card-title">Calories by Meal Type - @Model.BreakdownPeriodName</h5>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-funnel me-1"></i>Filter
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filterDropdown">
+                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "daily" ? "active" : "")" asp-action="Index" asp-route-period="daily">Today</a></li>
+                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "weekly" ? "active" : "")" asp-action="Index" asp-route-period="weekly">This Week</a></li>
+                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "monthly" ? "active" : "")" asp-action="Index" asp-route-period="monthly">This Month</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            @if (Model.MealTypeBreakdown.Any())
+            {
+                <ul class="meal-list">
+                    @foreach (var meal in Model.MealTypeBreakdown)
+                    {
+                        <li class="meal-item">
+                            <div class="meal-info">
+                                <div class="meal-name">
+                                    <i class="@meal.MealTypeIcon me-2"></i>@meal.MealType
+                                </div>
+                                <div class="meal-count">@meal.Count @(meal.Count == 1 ? "entry" : "entries") � P: @meal.TotalProtein.ToString("N0")g � C: @meal.TotalCarbs.ToString("N0")g � F: @meal.TotalFats.ToString("N0")g</div>
+                            </div>
+                            <div>
+                                <div class="meal-calories">@meal.TotalCalories kcal</div>
+                                <div class="meal-percentage">@meal.Percentage%</div>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-pie-chart"></i>
+                    <p>No food entries for this period</p>
+                </div>
+            }
+        </div>
+
+        <!-- Recent Entries -->
+        <div class="main-card">
+            <div class="card-header">
+                <h5 class="card-title">Recent Entries</h5>
+            </div>
+
+            @if (Model.RecentEntries.Any())
+            {
+                <ul class="recent-list">
+                    @foreach (var entry in Model.RecentEntries)
+                    {
+                        <li class="recent-item">
+                            <div class="recent-header">
+                                <span class="recent-name">@entry.Name</span>
+                                <span class="recent-calories">@entry.Calories kcal</span>
+                            </div>
+                            <div class="recent-meta">
+                                <span class="badge @entry.MealTypeBadgeClass me-1">
+                                    <i class="@entry.MealTypeIcon me-1"></i>@entry.MealType
+                                </span>
+                                @entry.Date.ToString("MMM dd, yyyy")
+                                @if (!string.IsNullOrEmpty(entry.ServingSize))
+                                {
+                                    <span>� @entry.ServingSize</span>
+                                }
+                            </div>
+                            <div class="recent-macros">
+                                P: @entry.Protein.ToString("N0")g � C: @entry.Carbs.ToString("N0")g � F: @entry.Fats.ToString("N0")g
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="bi bi-egg-fried"></i>
+                    <p>No food entries yet</p>
+                    <a asp-action="Create" class="btn btn-primary">Log Your First Meal</a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Initialize Bootstrap dropdown
+        document.addEventListener('DOMContentLoaded', function() {
+            var dropdownButton = document.getElementById('filterDropdown');
+            
+            if (dropdownButton && typeof bootstrap !== 'undefined') {
+                var dropdown = new bootstrap.Dropdown(dropdownButton, {
+                    autoClose: true
+                });
+                
+                dropdownButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    dropdown.toggle();
+                });
+            }
+        });
+    </script>
+}

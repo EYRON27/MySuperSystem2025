@@ -31,5 +31,6 @@ namespace MySuperSystem2025.Models.Domain
         public virtual ICollection<PasswordCategory> PasswordCategories { get; set; } = new List<PasswordCategory>();
         public virtual ICollection<TimeEntry> TimeEntries { get; set; } = new List<TimeEntry>();
         public virtual ICollection<TimeCategory> TimeCategories { get; set; } = new List<TimeCategory>();
+        public virtual ICollection<FoodEntry> FoodEntries { get; set; } = new List<FoodEntry>();
     }
 }

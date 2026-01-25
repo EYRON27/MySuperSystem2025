@@ -30,6 +30,9 @@ namespace MySuperSystem2025.Data
         public DbSet<TimeEntry> TimeEntries { get; set; }
         public DbSet<TimeCategory> TimeCategories { get; set; }
 
+        // Food Tracking
+        public DbSet<FoodEntry> FoodEntries { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -42,6 +45,7 @@ namespace MySuperSystem2025.Data
             builder.Entity<PasswordCategory>().HasQueryFilter(p => !p.IsDeleted);
             builder.Entity<TimeEntry>().HasQueryFilter(t => !t.IsDeleted);
             builder.Entity<TimeCategory>().HasQueryFilter(t => !t.IsDeleted);
+            builder.Entity<FoodEntry>().HasQueryFilter(f => !f.IsDeleted);
             builder.Entity<ApplicationUser>().HasQueryFilter(u => !u.IsDeleted);
 
             // Configure relationships for Expense
@@ -138,6 +142,19 @@ namespace MySuperSystem2025.Data
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(c => new { c.UserId, c.Name }).IsUnique();
+            });
+
+            // Configure relationships for FoodEntry
+            builder.Entity<FoodEntry>(entity =>
+            {
+                entity.HasOne(f => f.User)
+                    .WithMany(u => u.FoodEntries)
+                    .HasForeignKey(f => f.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(f => f.Date);
+                entity.HasIndex(f => f.UserId);
+                entity.HasIndex(f => f.MealType);
             });
         }
 

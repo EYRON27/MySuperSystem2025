@@ -3,6 +3,7 @@ using iTextSharp.text.pdf;
 using MySuperSystem2025.Models.ViewModels.Expense;
 using MySuperSystem2025.Models.ViewModels.Task;
 using MySuperSystem2025.Models.ViewModels.Password;
+using MySuperSystem2025.Models.ViewModels.Food;
 
 namespace MySuperSystem2025.Services
 {
@@ -23,6 +24,7 @@ namespace MySuperSystem2025.Services
         private static readonly BaseColor ColorLightGray = new BaseColor(211, 211, 211);
         private static readonly BaseColor ColorHeaderBg = new BaseColor(41, 128, 185);
         private static readonly BaseColor ColorCellBg = new BaseColor(245, 245, 245);
+        private static readonly BaseColor ColorGreen = new BaseColor(22, 163, 74);
 
         // Peso currency symbol - using "PHP" as fallback for PDF compatibility
         private const string PesoSymbol = "PHP ";
@@ -286,6 +288,145 @@ namespace MySuperSystem2025.Services
 
                 document.Add(passwordTable);
             }
+
+            document.Close();
+            writer.Close();
+
+            return memoryStream.ToArray();
+        }
+
+        /// <summary>
+        /// Generates PDF for Food Tracker Dashboard
+        /// </summary>
+        public byte[] GenerateFoodDashboardPdf(FoodDashboardViewModel dashboard, FoodEntryListViewModel entries, string userName)
+        {
+            using var memoryStream = new MemoryStream();
+            var document = new Document(PageSize.A4, 40, 40, 40, 40);
+            var writer = PdfWriter.GetInstance(document, memoryStream);
+
+            document.Open();
+
+            // Title
+            var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 20, ColorDarkGray);
+            var title = new Paragraph("Food Tracker Report\n\n", titleFont);
+            title.Alignment = Element.ALIGN_CENTER;
+            document.Add(title);
+
+            // User and Date Info
+            var infoFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, ColorGray);
+            document.Add(new Paragraph($"Generated for: {userName}", infoFont));
+            document.Add(new Paragraph($"Date: {DateTime.Now:MMMM dd, yyyy hh:mm tt}", infoFont));
+            document.Add(new Paragraph($"Period: {dashboard.BreakdownPeriodName}\n\n", infoFont));
+
+            // Summary Section
+            var sectionFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, ColorBlack);
+            document.Add(new Paragraph("Nutrition Summary", sectionFont));
+            document.Add(new Paragraph(" "));
+
+            var summaryTable = new PdfPTable(2) { WidthPercentage = 100 };
+            summaryTable.SetWidths(new float[] { 1, 1 });
+
+            AddSummaryRow(summaryTable, "Today's Calories", $"{dashboard.TodayCalories} kcal", $"{dashboard.TodayMealCount} meals");
+            AddSummaryRow(summaryTable, "Weekly Calories", $"{dashboard.WeeklyCalories} kcal", $"{dashboard.WeeklyMealCount} meals");
+            AddSummaryRow(summaryTable, "Monthly Calories", $"{dashboard.MonthlyCalories} kcal", $"{dashboard.MonthlyMealCount} meals");
+            AddSummaryRow(summaryTable, "Daily Average", $"{dashboard.AverageDailyCalories} kcal", dashboard.BreakdownPeriodName);
+
+            document.Add(summaryTable);
+            document.Add(new Paragraph(" "));
+
+            // Macros Summary
+            document.Add(new Paragraph("Today's Macronutrients", sectionFont));
+            document.Add(new Paragraph(" "));
+
+            var macroTable = new PdfPTable(4) { WidthPercentage = 100 };
+            macroTable.SetWidths(new float[] { 1, 1, 1, 1 });
+
+            AddHeaderCell(macroTable, "Calories");
+            AddHeaderCell(macroTable, "Protein");
+            AddHeaderCell(macroTable, "Carbs");
+            AddHeaderCell(macroTable, "Fats");
+
+            AddDataCell(macroTable, $"{dashboard.TodayCalories} kcal");
+            AddDataCell(macroTable, $"{dashboard.TodayProtein:N1}g");
+            AddDataCell(macroTable, $"{dashboard.TodayCarbs:N1}g");
+            AddDataCell(macroTable, $"{dashboard.TodayFats:N1}g");
+
+            document.Add(macroTable);
+            document.Add(new Paragraph(" "));
+
+            // Meal Type Breakdown
+            if (dashboard.MealTypeBreakdown.Any())
+            {
+                document.Add(new Paragraph($"Calories by Meal Type - {dashboard.BreakdownPeriodName}", sectionFont));
+                document.Add(new Paragraph(" "));
+
+                var mealTable = new PdfPTable(6) { WidthPercentage = 100 };
+                mealTable.SetWidths(new float[] { 1.5f, 1, 1, 1, 1, 1 });
+
+                AddHeaderCell(mealTable, "Meal Type");
+                AddHeaderCell(mealTable, "Count");
+                AddHeaderCell(mealTable, "Calories");
+                AddHeaderCell(mealTable, "Protein");
+                AddHeaderCell(mealTable, "Carbs");
+                AddHeaderCell(mealTable, "Fats");
+
+                foreach (var meal in dashboard.MealTypeBreakdown)
+                {
+                    AddDataCell(mealTable, meal.MealType);
+                    AddDataCell(mealTable, meal.Count.ToString());
+                    AddDataCell(mealTable, $"{meal.TotalCalories} kcal");
+                    AddDataCell(mealTable, $"{meal.TotalProtein:N1}g");
+                    AddDataCell(mealTable, $"{meal.TotalCarbs:N1}g");
+                    AddDataCell(mealTable, $"{meal.TotalFats:N1}g");
+                }
+
+                document.Add(mealTable);
+                document.Add(new Paragraph(" "));
+            }
+
+            // Food Entries
+            if (entries.FoodEntries.Any())
+            {
+                document.Add(new Paragraph("Food Entries", sectionFont));
+                document.Add(new Paragraph(" "));
+
+                var entriesTable = new PdfPTable(7) { WidthPercentage = 100 };
+                entriesTable.SetWidths(new float[] { 1.2f, 2f, 1f, 1f, 0.8f, 0.8f, 0.8f });
+
+                AddHeaderCell(entriesTable, "Date");
+                AddHeaderCell(entriesTable, "Food");
+                AddHeaderCell(entriesTable, "Meal");
+                AddHeaderCell(entriesTable, "Calories");
+                AddHeaderCell(entriesTable, "P");
+                AddHeaderCell(entriesTable, "C");
+                AddHeaderCell(entriesTable, "F");
+
+                foreach (var entry in entries.FoodEntries.Take(30))
+                {
+                    AddDataCell(entriesTable, entry.Date.ToString("MMM dd"));
+                    AddDataCell(entriesTable, entry.Name);
+                    AddDataCell(entriesTable, entry.MealType);
+                    AddDataCell(entriesTable, $"{entry.Calories}");
+                    AddDataCell(entriesTable, $"{entry.Protein:N0}g");
+                    AddDataCell(entriesTable, $"{entry.Carbs:N0}g");
+                    AddDataCell(entriesTable, $"{entry.Fats:N0}g");
+                }
+
+                document.Add(entriesTable);
+                document.Add(new Paragraph(" "));
+
+                // Totals row
+                var totalFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, ColorBlack);
+                var totals = new Paragraph($"\nTotals: {entries.TotalCount} entries | {entries.TotalCalories} kcal | Protein: {entries.TotalProtein:N1}g | Carbs: {entries.TotalCarbs:N1}g | Fats: {entries.TotalFats:N1}g", totalFont);
+                document.Add(totals);
+            }
+
+            // Footer note
+            document.Add(new Paragraph(" "));
+            var footerFont = FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 9, ColorGray);
+            var footer = new Paragraph("This report is generated for health tracking purposes. Consult a healthcare professional for personalized dietary advice.", footerFont);
+            footer.Alignment = Element.ALIGN_CENTER;
+            document.Add(footer);
 
             document.Close();
             writer.Close();

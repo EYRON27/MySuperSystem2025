@@ -1,0 +1,144 @@
+@model MySuperSystem2025.Models.ViewModels.Food.FoodEntryListViewModel
+@using MySuperSystem2025.Models.Domain
+@{
+    ViewData["Title"] = "All Food Entries";
+}
+
+<div class="container-fluid" style="max-width: 1400px;">
+    <div class="my-4">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1 class="h3"><i class="bi bi-list-ul me-2"></i>All Food Entries</h1>
+                <p class="text-muted mb-0">View and manage all your food entries</p>
+            </div>
+            <a asp-action="Create" class="btn btn-success">
+                <i class="bi bi-plus-circle me-1"></i>Add Food
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-2">
+                    <label class="form-label">Period</label>
+                    <select name="period" class="form-select">
+                        <option value="">All Time</option>
+                        <option value="daily" selected="@(Model.FilterPeriod == "daily")">Today</option>
+                        <option value="weekly" selected="@(Model.FilterPeriod == "weekly")">This Week</option>
+                        <option value="monthly" selected="@(Model.FilterPeriod == "monthly")">This Month</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Meal Type</label>
+                    <select name="mealType" class="form-select">
+                        <option value="">All Types</option>
+                        @foreach (var type in MealTypes.All)
+                        {
+                            <option value="@type" selected="@(Model.FilterMealType == type)">@type</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" name="startDate" value="@Model.FilterStartDate?.ToString("yyyy-MM-dd")" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">End Date</label>
+                    <input type="date" name="endDate" value="@Model.FilterEndDate?.ToString("yyyy-MM-dd")" class="form-control" />
+                </div>
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                    <a asp-action="List" class="btn btn-outline-secondary">Reset</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="alert alert-success mb-0">
+                <strong>@Model.TotalCount</strong> entries found
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="alert alert-danger mb-0">
+                Total: <strong>@Model.TotalCalories kcal</strong>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="alert alert-info mb-0">
+                <strong>P:</strong> @Model.TotalProtein.ToString("N0")g · 
+                <strong>C:</strong> @Model.TotalCarbs.ToString("N0")g · 
+                <strong>F:</strong> @Model.TotalFats.ToString("N0")g
+            </div>
+        </div>
+    </div>
+
+    <!-- Entries List -->
+    @if (Model.FoodEntries.Any())
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Food</th>
+                            <th>Meal</th>
+                            <th>Serving</th>
+                            <th class="text-center">Calories</th>
+                            <th class="text-center">Protein</th>
+                            <th class="text-center">Carbs</th>
+                            <th class="text-center">Fats</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var entry in Model.FoodEntries)
+                        {
+                            <tr>
+                                <td>@entry.Date.ToString("MMM dd")</td>
+                                <td>
+                                    <strong>@entry.Name</strong>
+                                    @if (!string.IsNullOrEmpty(entry.Notes))
+                                    {
+                                        <small class="d-block text-muted">@entry.Notes</small>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge @entry.MealTypeBadgeClass">
+                                        <i class="@entry.MealTypeIcon me-1"></i>@entry.MealType
+                                    </span>
+                                </td>
+                                <td>@(string.IsNullOrEmpty(entry.ServingSize) ? "-" : entry.ServingSize)</td>
+                                <td class="text-center"><strong class="text-danger">@entry.Calories</strong></td>
+                                <td class="text-center text-primary">@entry.Protein.ToString("N0")g</td>
+                                <td class="text-center text-warning">@entry.Carbs.ToString("N0")g</td>
+                                <td class="text-center" style="color: #7c3aed;">@entry.Fats.ToString("N0")g</td>
+                                <td class="text-end">
+                                    <a asp-action="Edit" asp-route-id="@entry.Id" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@entry.Id" class="btn btn-sm btn-outline-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5">
+            <i class="bi bi-egg-fried" style="font-size: 4rem; opacity: 0.3;"></i>
+            <p class="text-muted mt-3">No food entries found</p>
+            <a asp-action="Create" class="btn btn-success">Log Your First Meal</a>
+        </div>
+    }
+</div>
