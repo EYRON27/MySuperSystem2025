@@ -273,6 +273,35 @@
         font-size: 0.875rem;
         font-weight: 500;
     }
+    
+    /* Filter button group styling */
+    .filter-btn-group {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .filter-btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8125rem;
+        border: 1px solid #e5e7eb;
+        background: white;
+        border-radius: 6px;
+        color: #6c757d;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    
+    .filter-btn:hover {
+        border-color: #16a34a;
+        color: #16a34a;
+        text-decoration: none;
+    }
+    
+    .filter-btn.active {
+        background: #16a34a;
+        border-color: #16a34a;
+        color: white;
+    }
 </style>
 
 <div class="food-dashboard">
@@ -314,7 +343,7 @@
             <div class="macro-label">Carbs</div>
         </div>
         <div class="macro-card fats">
-            <div class="macro-icon"><i class="bi bi-droplet text-purple"></i></div>
+            <div class="macro-icon"><i class="bi bi-droplet" style="color: #7c3aed;"></i></div>
             <div class="macro-value">@Model.TodayFats.ToString("N0")g</div>
             <div class="macro-label">Fats</div>
         </div>
@@ -350,15 +379,10 @@
         <div class="main-card">
             <div class="card-header">
                 <h5 class="card-title">Calories by Meal Type - @Model.BreakdownPeriodName</h5>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-funnel me-1"></i>Filter
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="filterDropdown">
-                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "daily" ? "active" : "")" asp-action="Index" asp-route-period="daily">Today</a></li>
-                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "weekly" ? "active" : "")" asp-action="Index" asp-route-period="weekly">This Week</a></li>
-                        <li><a class="dropdown-item @(Model.BreakdownPeriod == "monthly" ? "active" : "")" asp-action="Index" asp-route-period="monthly">This Month</a></li>
-                    </ul>
+                <div class="filter-btn-group">
+                    <a asp-action="Index" asp-route-period="daily" class="filter-btn @(Model.BreakdownPeriod == "daily" ? "active" : "")">Today</a>
+                    <a asp-action="Index" asp-route-period="weekly" class="filter-btn @(Model.BreakdownPeriod == "weekly" ? "active" : "")">Week</a>
+                    <a asp-action="Index" asp-route-period="monthly" class="filter-btn @(Model.BreakdownPeriod == "monthly" ? "active" : "")">Month</a>
                 </div>
             </div>
 
@@ -435,23 +459,3 @@
         </div>
     </div>
 </div>
-
-@section Scripts {
-    <script>
-        // Initialize Bootstrap dropdown
-        document.addEventListener('DOMContentLoaded', function() {
-            var dropdownButton = document.getElementById('filterDropdown');
-            
-            if (dropdownButton && typeof bootstrap !== 'undefined') {
-                var dropdown = new bootstrap.Dropdown(dropdownButton, {
-                    autoClose: true
-                });
-                
-                dropdownButton.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    dropdown.toggle();
-                });
-            }
-        });
-    </script>
-}

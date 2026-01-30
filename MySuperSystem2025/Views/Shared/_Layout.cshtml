@@ -11,7 +11,7 @@
     <style>
         :root {
             --sidebar-width: 250px;
-            --footer-height: 72px; /* height used to reserve space for fixed footer */
+            --footer-height: 56px;
         }
         html, body {
             height: 100vh;
@@ -108,8 +108,8 @@
             overflow-y: auto;
             overflow-x: hidden;
             min-height: 0;
-            /* Reserve space so content scrolls above the fixed footer */
-            padding-bottom: var(--footer-height);
+            /* Reserve extra space so content scrolls above the fixed footer */
+            padding-bottom: 80px;
         }
         /* Fix footer to bottom of viewport but only cover the main content area (not the sidebar) */
         .footer {
@@ -171,7 +171,6 @@
                         <i class="bi bi-egg-fried"></i> Food Tracker
                     </a>
                 </li>
-                <!-- Settings moved to bottom area near logout for quick access -->
             </ul>
             <div class="mt-auto p-3">
                 <a asp-controller="Account" asp-action="Settings" class="nav-link w-100 text-start border-0 bg-transparent" style="color: rgba(255,255,255,0.8);">
@@ -215,12 +214,10 @@
                 @RenderBody()
             </main>
             <footer class="footer">
-                <div class="container-fluid">
-                    <p class="mb-0">
-                        <img src="~/Picture/aarvievewatermark.png" alt="Aarvieve" style="width:24px;height:24px;object-fit:contain;margin-right:8px;" class="align-middle" />
-                        Aarvieve Supersystem 2025
-                    </p>
-                </div>
+                <p class="mb-0">
+                    <img src="~/Picture/aarvievewatermark.png" alt="Aarvieve" style="width:24px;height:24px;object-fit:contain;margin-right:8px;" class="align-middle" />
+                    Aarvieve Supersystem 2025
+                </p>
             </footer>
         </div>
     }
