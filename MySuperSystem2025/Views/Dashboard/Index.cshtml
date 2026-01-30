@@ -1,282 +1,602 @@
 @{
     ViewData["Title"] = "Dashboard";
+    var greeting = DateTime.Now.Hour < 12 ? "Good morning" : DateTime.Now.Hour < 18 ? "Good afternoon" : "Good evening";
 }
 
 <style>
-    /* Minimalist Professional Dashboard */
+    /* Modern Dashboard Design */
     .dashboard-container {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
     }
     
-    .dashboard-welcome {
-        margin-bottom: 2.5rem;
+    /* Hero Welcome Section */
+    .welcome-hero {
+        background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #1e3a5f 100%);
+        border-radius: 16px;
+        padding: 2rem 2.5rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
     }
     
-    .dashboard-welcome h1 {
-        font-size: 2rem;
-        font-weight: 600;
-        color: #1a1a1a;
+    .welcome-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    
+    .welcome-hero::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: 20%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    
+    .welcome-content {
+        position: relative;
+        z-index: 1;
+    }
+    
+    .welcome-greeting {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.7);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
         margin-bottom: 0.5rem;
     }
     
-    .dashboard-welcome p {
-        color: #6c757d;
+    .welcome-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 0.5rem;
+    }
+    
+    .welcome-subtitle {
+        color: rgba(255, 255, 255, 0.8);
         font-size: 0.95rem;
         margin-bottom: 0;
     }
     
-    .module-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2.5rem;
-    }
-    
-    .module-card {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 1.75rem;
-        transition: all 0.2s ease;
-        text-decoration: none;
-        color: inherit;
-        display: block;
-    }
-    
-    .module-card:hover {
-        border-color: #d1d5db;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        transform: translateY(-2px);
-        text-decoration: none;
-    }
-    
-    .module-icon-wrapper {
-        width: 48px;
-        height: 48px;
-        border-radius: 8px;
+    .welcome-meta {
         display: flex;
         align-items: center;
-        justify-content: center;
-        margin-bottom: 1rem;
+        gap: 1.5rem;
+        margin-top: 1.5rem;
     }
     
-    .module-icon-wrapper i {
-        font-size: 1.5rem;
-    }
-    
-    .module-icon-wrapper.expense {
-        background: #eff6ff;
-        color: #2563eb;
-    }
-    
-    .module-icon-wrapper.task {
-        background: #f0fdf4;
-        color: #16a34a;
-    }
-    
-    .module-icon-wrapper.password {
-        background: #fef2f2;
-        color: #dc2626;
-    }
-    
-    .module-icon-wrapper.time {
-        background: #fef3c7;
-        color: #d97706;
-    }
-    
-    .module-icon-wrapper.food {
-        background: #ecfdf5;
-        color: #059669;
-    }
-    
-    .module-title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: #1a1a1a;
-        margin-bottom: 0.5rem;
-    }
-    
-    .module-description {
-        color: #6c757d;
-        font-size: 0.875rem;
-        line-height: 1.5;
-        margin-bottom: 1rem;
-    }
-    
-    .module-link {
-        color: #2563eb;
-        font-size: 0.875rem;
-        font-weight: 500;
-        display: inline-flex;
+    .meta-item {
+        display: flex;
         align-items: center;
-        gap: 0.375rem;
+        gap: 0.5rem;
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.8125rem;
     }
     
-    .module-link:hover {
-        color: #1d4ed8;
+    .meta-item i {
+        font-size: 1rem;
+        opacity: 0.8;
     }
     
-    .quick-actions-section {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 1.75rem;
+    /* Stats Section */
+    .stats-section {
+        margin-bottom: 2rem;
+    }
+    
+    .section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
     }
     
     .section-title {
         font-size: 1rem;
         font-weight: 600;
         color: #1a1a1a;
-        margin-bottom: 1.25rem;
-    }
-    
-    .action-btn {
-        padding: 0.75rem 1.25rem;
-        border-radius: 6px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        border: 1px solid #e5e7eb;
-        background: white;
-        color: #374151;
-        transition: all 0.2s ease;
         display: flex;
         align-items: center;
         gap: 0.5rem;
+    }
+    
+    .section-title i {
+        color: #6b7280;
+        font-size: 1.125rem;
+    }
+    
+    /* Module Cards Grid */
+    .module-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    @@media (max-width: 1200px) {
+        .module-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @@media (max-width: 768px) {
+        .module-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .module-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+        transition: all 0.25s ease;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .module-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: transparent;
+        transition: all 0.25s ease;
+    }
+    
+    .module-card:hover {
+        border-color: transparent;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+        transform: translateY(-4px);
+        text-decoration: none;
+    }
+    
+    .module-card.expense::before { background: #2563eb; }
+    .module-card.task::before { background: #16a34a; }
+    .module-card.password::before { background: #dc2626; }
+    .module-card.time::before { background: #d97706; }
+    .module-card.food::before { background: #059669; }
+    
+    .module-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+    }
+    
+    .module-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.375rem;
+    }
+    
+    .module-icon.expense { background: #eff6ff; color: #2563eb; }
+    .module-icon.task { background: #f0fdf4; color: #16a34a; }
+    .module-icon.password { background: #fef2f2; color: #dc2626; }
+    .module-icon.time { background: #fffbeb; color: #d97706; }
+    .module-icon.food { background: #ecfdf5; color: #059669; }
+    
+    .module-arrow {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f3f4f6;
+        color: #9ca3af;
+        transition: all 0.25s ease;
+    }
+    
+    .module-card:hover .module-arrow {
+        background: #1e3a5f;
+        color: #fff;
+    }
+    
+    .module-content {
+        flex: 1;
+    }
+    
+    .module-title {
+        font-size: 1.0625rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 0.375rem;
+    }
+    
+    .module-description {
+        color: #6b7280;
+        font-size: 0.8125rem;
+        line-height: 1.5;
+        margin-bottom: 0;
+    }
+    
+    /* Quick Actions Section */
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+    }
+    
+    @@media (max-width: 992px) {
+        .quick-actions-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .quick-actions-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+    
+    .quick-actions-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .quick-actions-title i {
+        color: #6b7280;
+    }
+    
+    .action-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.625rem;
+    }
+    
+    .action-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: 1px solid #e5e7eb;
+        background: #fafafa;
+        color: #374151;
+        transition: all 0.2s ease;
         text-decoration: none;
     }
     
     .action-btn:hover {
-        background: #f9fafb;
+        background: #f3f4f6;
         border-color: #d1d5db;
         color: #1f2937;
         text-decoration: none;
+        transform: translateX(4px);
     }
     
     .action-btn i {
-        font-size: 1rem;
+        font-size: 1.125rem;
+        width: 24px;
+        text-align: center;
     }
     
-    .date-badge {
-        display: inline-flex;
+    .action-btn.expense i { color: #2563eb; }
+    .action-btn.task i { color: #16a34a; }
+    .action-btn.password i { color: #dc2626; }
+    .action-btn.time i { color: #d97706; }
+    .action-btn.food i { color: #059669; }
+    
+    /* Tips Section */
+    .tips-card {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 1px solid #bae6fd;
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+    
+    .tips-title {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: #0369a1;
+        margin-bottom: 1rem;
+        display: flex;
         align-items: center;
         gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
+    }
+    
+    .tip-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        padding: 0.625rem 0;
+        border-bottom: 1px solid rgba(14, 165, 233, 0.15);
+    }
+    
+    .tip-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    
+    .tip-icon {
+        width: 24px;
+        height: 24px;
         border-radius: 6px;
-        font-size: 0.875rem;
-        color: #6c757d;
+        background: rgba(14, 165, 233, 0.15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #0284c7;
+        font-size: 0.75rem;
+        flex-shrink: 0;
+    }
+    
+    .tip-text {
+        font-size: 0.8125rem;
+        color: #0c4a6e;
+        line-height: 1.5;
+    }
+    
+    /* Feature Highlights */
+    .features-row {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    @@media (max-width: 1200px) {
+        .features-row {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+    
+    @@media (max-width: 768px) {
+        .features-row {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    .feature-badge {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 1rem;
+        text-align: center;
+        transition: all 0.2s ease;
+    }
+    
+    .feature-badge:hover {
+        border-color: #d1d5db;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    }
+    
+    .feature-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 0.625rem;
+        font-size: 1.125rem;
+    }
+    
+    .feature-badge:nth-child(1) .feature-icon { background: #eff6ff; color: #2563eb; }
+    .feature-badge:nth-child(2) .feature-icon { background: #f0fdf4; color: #16a34a; }
+    .feature-badge:nth-child(3) .feature-icon { background: #fef2f2; color: #dc2626; }
+    .feature-badge:nth-child(4) .feature-icon { background: #fffbeb; color: #d97706; }
+    .feature-badge:nth-child(5) .feature-icon { background: #ecfdf5; color: #059669; }
+    
+    .feature-label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #6b7280;
     }
 </style>
 
 <div class="dashboard-container">
-    <!-- Welcome Section -->
-    <div class="dashboard-welcome">
-        <div class="d-flex justify-content-between align-items-start">
-            <div>
-                <h1>Dashboard</h1>
-                <p>Manage your expenses, tasks, passwords, time, and nutrition efficiently</p>
-            </div>
-            <div class="date-badge">
-                <i class="bi bi-calendar3"></i>
-                @DateTime.Now.ToString("MMM dd, yyyy")
+    <!-- Welcome Hero Section -->
+    <div class="welcome-hero">
+        <div class="welcome-content">
+            <p class="welcome-greeting">@greeting</p>
+            <h1 class="welcome-title">Welcome back, @User.Identity?.Name!</h1>
+            <p class="welcome-subtitle">Your personal productivity hub is ready. What would you like to accomplish today?</p>
+            <div class="welcome-meta">
+                <div class="meta-item">
+                    <i class="bi bi-calendar3"></i>
+                    @DateTime.Now.ToString("dddd, MMMM dd, yyyy")
+                </div>
+                <div class="meta-item">
+                    <i class="bi bi-clock"></i>
+                    @DateTime.Now.ToString("hh:mm tt")
+                </div>
             </div>
         </div>
+    </div>
+    
+    <!-- Feature Highlights -->
+    <div class="features-row">
+        <div class="feature-badge">
+            <div class="feature-icon"><i class="bi bi-wallet2"></i></div>
+            <div class="feature-label">Budget Tracking</div>
+        </div>
+        <div class="feature-badge">
+            <div class="feature-icon"><i class="bi bi-kanban"></i></div>
+            <div class="feature-label">Task Board</div>
+        </div>
+        <div class="feature-badge">
+            <div class="feature-icon"><i class="bi bi-shield-lock"></i></div>
+            <div class="feature-label">AES Encryption</div>
+        </div>
+        <div class="feature-badge">
+            <div class="feature-icon"><i class="bi bi-stopwatch"></i></div>
+            <div class="feature-label">Time Analytics</div>
+        </div>
+        <div class="feature-badge">
+            <div class="feature-icon"><i class="bi bi-heart-pulse"></i></div>
+            <div class="feature-label">Nutrition Log</div>
+        </div>
+    </div>
+
+    <!-- Section Header -->
+    <div class="section-header">
+        <h2 class="section-title">
+            <i class="bi bi-grid-1x2"></i>
+            Your Modules
+        </h2>
     </div>
 
     <!-- Module Cards -->
     <div class="module-grid">
-        <a asp-controller="Expense" asp-action="Index" class="module-card">
-            <div class="module-icon-wrapper expense">
-                <i class="bi bi-wallet2"></i>
+        <a asp-controller="Expense" asp-action="Index" class="module-card expense">
+            <div class="module-header">
+                <div class="module-icon expense">
+                    <i class="bi bi-wallet2"></i>
+                </div>
+                <div class="module-arrow">
+                    <i class="bi bi-arrow-right"></i>
+                </div>
             </div>
-            <h5 class="module-title">Expense Tracker</h5>
-            <p class="module-description">
-                Track and manage your daily expenses with category-based budgeting
-            </p>
-            <span class="module-link">
-                Open Dashboard <i class="bi bi-arrow-right"></i>
-            </span>
+            <div class="module-content">
+                <h5 class="module-title">Expense Tracker</h5>
+                <p class="module-description">Track daily expenses with category-based budgeting and monthly reports</p>
+            </div>
         </a>
         
-        <a asp-controller="Task" asp-action="Index" class="module-card">
-            <div class="module-icon-wrapper task">
-                <i class="bi bi-check2-square"></i>
+        <a asp-controller="Task" asp-action="Index" class="module-card task">
+            <div class="module-header">
+                <div class="module-icon task">
+                    <i class="bi bi-check2-square"></i>
+                </div>
+                <div class="module-arrow">
+                    <i class="bi bi-arrow-right"></i>
+                </div>
             </div>
-            <h5 class="module-title">Task Manager</h5>
-            <p class="module-description">
-                Organize and track your tasks with deadlines and priority levels
-            </p>
-            <span class="module-link">
-                Open Dashboard <i class="bi bi-arrow-right"></i>
-            </span>
+            <div class="module-content">
+                <h5 class="module-title">Task Manager</h5>
+                <p class="module-description">Organize tasks with drag & drop Kanban board and deadline tracking</p>
+            </div>
         </a>
         
-        <a asp-controller="Password" asp-action="Index" class="module-card">
-            <div class="module-icon-wrapper password">
-                <i class="bi bi-shield-lock"></i>
+        <a asp-controller="Password" asp-action="Index" class="module-card password">
+            <div class="module-header">
+                <div class="module-icon password">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <div class="module-arrow">
+                    <i class="bi bi-arrow-right"></i>
+                </div>
             </div>
-            <h5 class="module-title">Password Vault</h5>
-            <p class="module-description">
-                Securely store and manage passwords with AES encryption
-            </p>
-            <span class="module-link">
-                Open Dashboard <i class="bi bi-arrow-right"></i>
-            </span>
+            <div class="module-content">
+                <h5 class="module-title">Password Vault</h5>
+                <p class="module-description">Securely store credentials with AES-256 encryption protection</p>
+            </div>
         </a>
         
-        <a asp-controller="Time" asp-action="Index" class="module-card">
-            <div class="module-icon-wrapper time">
-                <i class="bi bi-clock-history"></i>
+        <a asp-controller="Time" asp-action="Index" class="module-card time">
+            <div class="module-header">
+                <div class="module-icon time">
+                    <i class="bi bi-clock-history"></i>
+                </div>
+                <div class="module-arrow">
+                    <i class="bi bi-arrow-right"></i>
+                </div>
             </div>
-            <h5 class="module-title">Time Tracker</h5>
-            <p class="module-description">
-                Track time spent on activities with category-based logging
-            </p>
-            <span class="module-link">
-                Open Dashboard <i class="bi bi-arrow-right"></i>
-            </span>
+            <div class="module-content">
+                <h5 class="module-title">Time Tracker</h5>
+                <p class="module-description">Log activities with built-in timer and category analytics</p>
+            </div>
         </a>
         
-        <a asp-controller="Food" asp-action="Index" class="module-card">
-            <div class="module-icon-wrapper food">
-                <i class="bi bi-egg-fried"></i>
+        <a asp-controller="Food" asp-action="Index" class="module-card food">
+            <div class="module-header">
+                <div class="module-icon food">
+                    <i class="bi bi-egg-fried"></i>
+                </div>
+                <div class="module-arrow">
+                    <i class="bi bi-arrow-right"></i>
+                </div>
             </div>
-            <h5 class="module-title">Food Tracker</h5>
-            <p class="module-description">
-                Monitor your daily nutrition with calorie and macro tracking
-            </p>
-            <span class="module-link">
-                Open Dashboard <i class="bi bi-arrow-right"></i>
-            </span>
+            <div class="module-content">
+                <h5 class="module-title">Food Tracker</h5>
+                <p class="module-description">Monitor nutrition with calorie counting and macro tracking</p>
+            </div>
         </a>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="quick-actions-section">
-        <h6 class="section-title">Quick Actions</h6>
-        <div class="d-grid gap-2">
-            <a asp-controller="Expense" asp-action="Create" class="action-btn">
-                <i class="bi bi-plus-circle"></i>
-                Add New Expense
-            </a>
-            <a asp-controller="Task" asp-action="Create" class="action-btn">
-                <i class="bi bi-plus-circle"></i>
-                Create New Task
-            </a>
-            <a asp-controller="Password" asp-action="Create" class="action-btn">
-                <i class="bi bi-plus-circle"></i>
-                Store New Password
-            </a>
-            <a asp-controller="Time" asp-action="Create" class="action-btn">
-                <i class="bi bi-plus-circle"></i>
-                Add Time Entry
-            </a>
-            <a asp-controller="Food" asp-action="Create" class="action-btn">
-                <i class="bi bi-plus-circle"></i>
-                Log Food Entry
-            </a>
+    <!-- Quick Actions & Tips Grid -->
+    <div class="quick-actions-grid">
+        <!-- Quick Actions -->
+        <div class="quick-actions-card">
+            <h6 class="quick-actions-title">
+                <i class="bi bi-lightning-charge-fill"></i>
+                Quick Actions
+            </h6>
+            <div class="action-list">
+                <a asp-controller="Expense" asp-action="Create" class="action-btn expense">
+                    <i class="bi bi-plus-circle-fill"></i>
+                    Add New Expense
+                </a>
+                <a asp-controller="Task" asp-action="Create" class="action-btn task">
+                    <i class="bi bi-plus-circle-fill"></i>
+                    Create New Task
+                </a>
+                <a asp-controller="Password" asp-action="Create" class="action-btn password">
+                    <i class="bi bi-plus-circle-fill"></i>
+                    Store New Password
+                </a>
+                <a asp-controller="Time" asp-action="Create" class="action-btn time">
+                    <i class="bi bi-plus-circle-fill"></i>
+                    Add Time Entry
+                </a>
+                <a asp-controller="Food" asp-action="Create" class="action-btn food">
+                    <i class="bi bi-plus-circle-fill"></i>
+                    Log Food Entry
+                </a>
+            </div>
+        </div>
+        
+        <!-- Tips & Help -->
+        <div class="tips-card">
+            <h6 class="tips-title">
+                <i class="bi bi-lightbulb-fill"></i>
+                Tips & Shortcuts
+            </h6>
+            <div class="tip-item">
+                <div class="tip-icon"><i class="bi bi-arrows-move"></i></div>
+                <div class="tip-text">Drag and drop tasks between columns to quickly update their status</div>
+            </div>
+            <div class="tip-item">
+                <div class="tip-icon"><i class="bi bi-calendar-check"></i></div>
+                <div class="tip-text">Set monthly budgets for expense categories to track spending limits</div>
+            </div>
+            <div class="tip-item">
+                <div class="tip-icon"><i class="bi bi-stopwatch"></i></div>
+                <div class="tip-text">Use the quick timer in Time Tracker to automatically log activities</div>
+            </div>
+            <div class="tip-item">
+                <div class="tip-icon"><i class="bi bi-file-pdf"></i></div>
+                <div class="tip-text">Export your data to PDF reports from any dashboard for record keeping</div>
+            </div>
         </div>
     </div>
 </div>
