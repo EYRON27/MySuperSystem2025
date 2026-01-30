@@ -139,6 +139,7 @@ namespace MySuperSystem2025.Controllers
 
         // POST: /Task/UpdateStatusAjax - For drag & drop functionality
         [HttpPost]
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> UpdateStatusAjax([FromBody] UpdateTaskStatusViewModel model)
         {
             if (model == null)
@@ -208,3 +209,4 @@ namespace MySuperSystem2025.Controllers
         }
     }
 }
+

@@ -10,108 +10,368 @@
     <link rel="stylesheet" href="~/MySuperSystem2025.styles.css" asp-append-version="true" />
     <style>
         :root {
-            --sidebar-width: 250px;
+            --sidebar-width: 260px;
+            --sidebar-collapsed-width: 70px;
             --footer-height: 56px;
+            --primary-color: #2563eb;
+            --primary-dark: #1e40af;
+            --sidebar-bg: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+            --sidebar-hover: rgba(255, 255, 255, 0.08);
+            --sidebar-active: rgba(37, 99, 235, 0.2);
+            --text-muted: rgba(255, 255, 255, 0.6);
         }
+        
         html, body {
             height: 100vh;
             margin: 0;
             padding: 0;
             overflow: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
+        
+        /* Modern Sidebar */
         .sidebar {
             width: var(--sidebar-width);
             height: 100vh;
-            background: linear-gradient(180deg, #1e3a5f 0%, #0d1b2a 100%);
+            background: var(--sidebar-bg);
             position: fixed;
             left: 0;
             top: 0;
-            overflow-y: auto;
             z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .sidebar .nav-link {
-            color: rgba(255,255,255,0.8);
-            padding: 12px 20px;
-            border-radius: 8px;
-            margin: 4px 12px;
-            transition: all 0.3s ease;
+        
+        /* Brand Logo Area */
+        .sidebar-brand {
+            padding: 1.5rem 1.25rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
         }
-        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+        
+        .sidebar-brand:hover {
+            text-decoration: none;
+        }
+        
+        .brand-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            object-fit: contain;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px;
+        }
+        
+        .brand-text {
+            font-size: 1.125rem;
+            font-weight: 700;
             color: #fff;
-            background: rgba(255,255,255,0.1);
+            letter-spacing: -0.025em;
         }
-        .sidebar .nav-link i {
-            margin-right: 10px;
-            font-size: 1.1rem;
+        
+        .brand-version {
+            font-size: 0.625rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
+        
+        /* Navigation Section */
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 0;
+        }
+        
+        .sidebar-nav::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .sidebar-nav::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .sidebar-nav::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        
+        /* Navigation Section Labels */
+        .nav-section-label {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            padding: 1rem 1.25rem 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .nav-section-label:first-child {
+            margin-top: 0;
+        }
+        
+        /* Navigation Links */
+        .sidebar-nav .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            margin: 2px 0.75rem;
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.75);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .sidebar-nav .nav-link:hover {
+            color: #fff;
+            background: var(--sidebar-hover);
+        }
+        
+        .sidebar-nav .nav-link.active {
+            color: #fff;
+            background: var(--sidebar-active);
+        }
+        
+        .sidebar-nav .nav-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 24px;
+            background: var(--primary-color);
+            border-radius: 0 3px 3px 0;
+        }
+        
+        .sidebar-nav .nav-link i {
+            font-size: 1.125rem;
+            width: 24px;
+            text-align: center;
+            opacity: 0.85;
+        }
+        
+        .sidebar-nav .nav-link.active i {
+            opacity: 1;
+            color: var(--primary-color);
+        }
+        
+        /* Navigation Badge */
+        .nav-badge {
+            margin-left: auto;
+            background: var(--primary-color);
+            color: #fff;
+            font-size: 0.625rem;
+            font-weight: 600;
+            padding: 0.125rem 0.5rem;
+            border-radius: 10px;
+        }
+        
+        /* Sidebar Footer */
+        .sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .sidebar-footer .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem 0.75rem;
+            margin: 2px 0;
+            border-radius: 8px;
+            color: rgba(255, 255, 255, 0.65);
+            text-decoration: none;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+        }
+        
+        .sidebar-footer .nav-link:hover {
+            color: #fff;
+            background: var(--sidebar-hover);
+        }
+        
+        .sidebar-footer .nav-link i {
+            font-size: 1rem;
+            width: 20px;
+            text-align: center;
+        }
+        
+        .sidebar-footer .nav-link.logout-btn:hover {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+        
+        /* User Profile Mini */
+        .user-profile-mini {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #fff;
+        }
+        
+        .user-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .user-name {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .user-status {
+            font-size: 0.6875rem;
+            color: #22c55e;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .user-status::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #22c55e;
+            border-radius: 50%;
+        }
+        
+        /* Main Content Area */
         .main-content {
             margin-left: var(--sidebar-width);
             height: 100vh;
             display: flex;
             flex-direction: column;
-            background-color: #f8f9fa;
+            background-color: #f8fafc;
             overflow: hidden;
         }
+        
+        /* Top Navigation Bar */
         .navbar-top {
             background: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             position: sticky;
             top: 0;
             z-index: 999;
             flex-shrink: 0;
+            border-bottom: 1px solid #e5e7eb;
         }
+        
+        /* General Card Styles */
         .card {
             border: none;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
             border-radius: 12px;
+            border: 1px solid #e5e7eb;
         }
+        
         .card-header {
             background: transparent;
-            border-bottom: 1px solid rgba(0,0,0,0.08);
+            border-bottom: 1px solid #e5e7eb;
             font-weight: 600;
         }
+        
         .stat-card {
-            transition: transform 0.2s ease;
+            transition: all 0.2s ease;
         }
+        
         .stat-card:hover {
-            transform: translateY(-4px);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
         }
+        
+        /* Button Styles */
         .btn-primary {
-            background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
-            border: none;
+            background: var(--primary-color);
+            border-color: var(--primary-color);
         }
+        
         .btn-primary:hover {
-            background: linear-gradient(135deg, #2d5a87 0%, #1e3a5f 100%);
+            background: var(--primary-dark);
+            border-color: var(--primary-dark);
         }
+        
+        /* Table Styles */
         .table th {
             font-weight: 600;
             color: #495057;
             border-top: none;
         }
+        
+        /* Alert Styles */
         .alert {
             border-radius: 8px;
+            border: none;
         }
+        
+        .alert-success {
+            background: #f0fdf4;
+            color: #166534;
+        }
+        
+        .alert-danger {
+            background: #fef2f2;
+            color: #991b1b;
+        }
+        
+        /* Form Styles */
         .form-control, .form-select {
             border-radius: 8px;
             padding: 10px 15px;
+            border-color: #e5e7eb;
         }
-        .brand-logo {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #fff;
-            text-decoration: none;
-            padding: 20px;
-            display: block;
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
         }
+        
+        /* Main Content Area */
         main {
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
             min-height: 0;
-            /* Reserve extra space so content scrolls above the fixed footer */
             padding-bottom: 80px;
         }
-        /* Fix footer to bottom of viewport but only cover the main content area (not the sidebar) */
+        
+        /* Footer */
         .footer {
             position: fixed;
             bottom: 0;
@@ -122,63 +382,135 @@
             align-items: center;
             justify-content: center;
             background: #fff;
-            box-shadow: 0 -2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
             padding: 0 20px;
             text-align: center;
-            color: #495057;
+            color: #6b7280;
+            font-size: 0.8125rem;
             font-weight: 500;
             z-index: 900;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        /* Responsive - Mobile */
+        @@media (max-width: 768px) {
+            .sidebar {
+                width: var(--sidebar-collapsed-width);
+            }
+            
+            .sidebar-brand .brand-text,
+            .sidebar-brand .brand-version,
+            .nav-section-label,
+            .sidebar-nav .nav-link span,
+            .user-info,
+            .sidebar-footer .nav-link span {
+                display: none;
+            }
+            
+            .sidebar-nav .nav-link,
+            .sidebar-footer .nav-link {
+                justify-content: center;
+                padding: 0.75rem;
+            }
+            
+            .sidebar-nav .nav-link i,
+            .sidebar-footer .nav-link i {
+                margin: 0;
+            }
+            
+            .user-profile-mini {
+                justify-content: center;
+                padding: 0.5rem;
+            }
+            
+            .main-content {
+                margin-left: var(--sidebar-collapsed-width);
+            }
+            
+            .footer {
+                left: var(--sidebar-collapsed-width);
+                width: calc(100% - var(--sidebar-collapsed-width));
+            }
         }
     </style>
 </head>
 <body>
     @if (User.Identity?.IsAuthenticated == true)
     {
-        <!-- Sidebar -->
-        <nav class="sidebar d-flex flex-column">
-                <a asp-controller="Dashboard" asp-action="Index" class="brand-logo d-flex align-items-center">
-                    <img src="~/Picture/aarvievewatermark.png" alt="Logo" style="width:32px;height:32px;object-fit:contain;border-radius:4px;" class="me-2" />
-                    <span>MySuperSystem</span>
+        <!-- Modern Sidebar -->
+        <nav class="sidebar">
+            <!-- Brand -->
+            <a asp-controller="Dashboard" asp-action="Index" class="sidebar-brand">
+                <img src="~/Picture/aarvievewatermark.png" alt="Logo" class="brand-icon" />
+                <div>
+                    <div class="brand-text">MySuperSystem</div>
+                    <div class="brand-version">Version 2025</div>
+                </div>
+            </a>
+            
+            <!-- Navigation -->
+            <div class="sidebar-nav">
+                <div class="nav-section-label">Main Menu</div>
+                
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
+                    <i class="bi bi-grid-1x2-fill"></i>
+                    <span>Dashboard</span>
                 </a>
-            <ul class="nav flex-column flex-grow-1">
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")" asp-controller="Dashboard" asp-action="Index">
-                        <i class="bi bi-speedometer2"></i> Dashboard
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Expense" ? "active" : "")" asp-controller="Expense" asp-action="Index">
-                        <i class="bi bi-wallet2"></i> Expenses
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Task" ? "active" : "")" asp-controller="Task" asp-action="Index">
-                        <i class="bi bi-check2-square"></i> Tasks
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Password" ? "active" : "")" asp-controller="Password" asp-action="Index">
-                        <i class="bi bi-shield-lock"></i> Passwords
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Time" ? "active" : "")" asp-controller="Time" asp-action="Index">
-                        <i class="bi bi-clock-history"></i> Time Tracker
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Food" ? "active" : "")" asp-controller="Food" asp-action="Index">
-                        <i class="bi bi-egg-fried"></i> Food Tracker
-                    </a>
-                </li>
-            </ul>
-            <div class="mt-auto p-3">
-                <a asp-controller="Account" asp-action="Settings" class="nav-link w-100 text-start border-0 bg-transparent" style="color: rgba(255,255,255,0.8);">
-                    <i class="bi bi-gear"></i> Settings
+                
+                <div class="nav-section-label">Finance & Tasks</div>
+                
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Expense" ? "active" : "")" asp-controller="Expense" asp-action="Index">
+                    <i class="bi bi-wallet2"></i>
+                    <span>Expenses</span>
                 </a>
-                <form asp-controller="Account" asp-action="Logout" method="post">
-                    <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent" style="color: rgba(255,255,255,0.8);">
-                        <i class="bi bi-box-arrow-right"></i> Logout
+                
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Task" ? "active" : "")" asp-controller="Task" asp-action="Index">
+                    <i class="bi bi-check2-square"></i>
+                    <span>Tasks</span>
+                </a>
+                
+                <div class="nav-section-label">Tracking</div>
+                
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Time" ? "active" : "")" asp-controller="Time" asp-action="Index">
+                    <i class="bi bi-clock-history"></i>
+                    <span>Time Tracker</span>
+                </a>
+                
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Food" ? "active" : "")" asp-controller="Food" asp-action="Index">
+                    <i class="bi bi-egg-fried"></i>
+                    <span>Food Tracker</span>
+                </a>
+                
+                <div class="nav-section-label">Security</div>
+                
+                <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Password" ? "active" : "")" asp-controller="Password" asp-action="Index">
+                    <i class="bi bi-shield-lock-fill"></i>
+                    <span>Password Vault</span>
+                </a>
+            </div>
+            
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+                <!-- User Profile Mini -->
+                <div class="user-profile-mini">
+                    <div class="user-avatar">
+                        @(User.Identity?.Name?.Substring(0, 1).ToUpper() ?? "U")
+                    </div>
+                    <div class="user-info">
+                        <div class="user-name">@User.Identity?.Name</div>
+                        <div class="user-status">Online</div>
+                    </div>
+                </div>
+                
+                <a asp-controller="Account" asp-action="Settings" class="nav-link">
+                    <i class="bi bi-gear"></i>
+                    <span>Settings</span>
+                </a>
+                
+                <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                    <button type="submit" class="nav-link logout-btn">
+                        <i class="bi bi-box-arrow-right"></i>
+                        <span>Logout</span>
                     </button>
                 </form>
             </div>
@@ -189,10 +521,13 @@
             <nav class="navbar navbar-top px-4 py-3">
                 <div class="container-fluid">
                     <span class="navbar-text">
-                        Welcome, <strong>@User.Identity?.Name</strong>
+                        Welcome back, <strong>@User.Identity?.Name</strong>
                     </span>
-                    <div class="d-flex align-items-center">
-                        <span class="text-muted small">@DateTime.Now.ToString("dddd, MMMM dd, yyyy")</span>
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="text-muted small">
+                            <i class="bi bi-calendar3 me-1"></i>
+                            @DateTime.Now.ToString("dddd, MMMM dd, yyyy")
+                        </span>
                     </div>
                 </div>
             </nav>
@@ -200,14 +535,14 @@
                 @if (TempData["Success"] != null)
                 {
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+                        <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 }
                 @if (TempData["Error"] != null)
                 {
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="bi bi-exclamation-triangle me-2"></i>@TempData["Error"]
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>@TempData["Error"]
                         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                     </div>
                 }
@@ -215,7 +550,7 @@
             </main>
             <footer class="footer">
                 <p class="mb-0">
-                    <img src="~/Picture/aarvievewatermark.png" alt="Aarvieve" style="width:24px;height:24px;object-fit:contain;margin-right:8px;" class="align-middle" />
+                    <img src="~/Picture/aarvievewatermark.png" alt="Aarvieve" style="width:20px;height:20px;object-fit:contain;margin-right:8px;opacity:0.8;" class="align-middle" />
                     Aarvieve Supersystem 2025
                 </p>
             </footer>
@@ -223,7 +558,7 @@
     }
     else
     {
-        <div class="min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #1e3a5f 0%, #0d1b2a 100%);">
+        <div class="min-vh-100 d-flex align-items-center justify-content-center" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);">
             <div class="container">
                 @RenderBody()
             </div>

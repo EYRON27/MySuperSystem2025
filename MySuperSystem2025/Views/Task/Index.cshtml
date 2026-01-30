@@ -338,7 +338,7 @@
                     <ul class="task-list">
                         @foreach (var task in Model.ToDoTasks)
                         {
-                            <li class="task-item @(task.IsOverdue ? "overdue" : "")" draggable="true" data-task-id="@task.Id" data-task-status="@((int)task.Status)">
+                            <li class="task-item @(task.IsOverdue ? "overdue" : "")" draggable="true" data-task-id="@task.Id" data-task-status="@((int)task.Status)" data-task-title="@task.Title" data-task-deadline="@(task.Deadline?.ToString("MMM dd, yyyy hh:mm tt") ?? "No deadline")">
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div style="flex: 1;">
                                         <div class="task-title">
@@ -605,17 +605,28 @@
             });
             
             function updateTaskStatus(taskId, newStatus) {
+                // Get the anti-forgery token from the page
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                
                 fetch('/Task/UpdateStatusAjax', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token || ''
+                    },
                     body: JSON.stringify({ id: taskId, status: newStatus })
                 })
-                .then(response => response.json())
-                .then data => {
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
                     if (data.success) {
                         location.reload();
                     } else {
-                        alert('Failed to update task: ' + data.message);
+                        alert('Failed to update task: ' + (data.message || 'Unknown error'));
                     }
                 })
                 .catch(error => {
