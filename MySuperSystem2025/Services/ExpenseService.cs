@@ -204,8 +204,24 @@ namespace MySuperSystem2025.Services
             return categories.Select(c =>
             {
                 var categoryExpenses = monthExpenses.Where(e => e.CategoryId == c.Id).Sum(e => e.Amount);
-                var budget = c.MonthlyFixedBudget > 0 ? c.MonthlyFixedBudget : c.BudgetAmount;
-                var remaining = budget - categoryExpenses;
+                
+                // FIX: Only use monthly calculation for categories WITH MonthlyFixedBudget
+                // Categories WITHOUT monthly fixed budget should use their stored BudgetAmount/RemainingAmount (one-time budget)
+                decimal budget;
+                decimal remaining;
+                
+                if (c.MonthlyFixedBudget > 0)
+                {
+                    // Monthly fixed budget: recalculate based on current month expenses
+                    budget = c.MonthlyFixedBudget;
+                    remaining = budget - categoryExpenses;
+                }
+                else
+                {
+                    // One-time/manual budget: use stored values, don't reset on month change
+                    budget = c.BudgetAmount;
+                    remaining = c.RemainingAmount;
+                }
 
                 return new CategoryBalanceViewModel
                 {

@@ -34,11 +34,21 @@
         border-radius: 8px;
         padding: 1.5rem;
         transition: all 0.3s ease;
+        cursor: pointer;
+        text-decoration: none;
+        display: block;
+        color: inherit;
     }
     
     .summary-card:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .summary-card.active {
+        box-shadow: 0 0 0 2px #2563eb;
     }
     
     .summary-card.completed {
@@ -66,6 +76,17 @@
     
     .summary-card.overdue .summary-value {
         color: #dc2626;
+    }
+    
+    .summary-card .filter-icon {
+        float: right;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        color: #6c757d;
+    }
+    
+    .summary-card:hover .filter-icon {
+        opacity: 1;
     }
     
     .info-notice {
@@ -297,31 +318,44 @@
     <!-- Drag & Drop Hint -->
     <div class="info-notice">
         <i class="bi bi-arrows-move me-2"></i>
-        <strong>Tip:</strong> Drag and drop tasks between columns to change their status.
+        <strong>Tip:</strong> Drag and drop tasks between columns to change their status. Click on status cards to filter tasks.
     </div>
 
-    <!-- Summary Cards -->
+    <!-- Summary Cards - Now Clickable -->
     <div class="summary-grid">
-        <div class="summary-card">
+        <a href="#" class="summary-card" data-filter="todo" onclick="filterTasks('todo'); return false;">
+            <i class="bi bi-funnel filter-icon"></i>
             <div class="summary-label">To Do</div>
             <div class="summary-value">@Model.PendingCount</div>
             <div class="summary-count">@(Model.PendingCount == 1 ? "task" : "tasks") pending</div>
-        </div>
-        <div class="summary-card ongoing">
+        </a>
+        <a href="#" class="summary-card ongoing" data-filter="ongoing" onclick="filterTasks('ongoing'); return false;">
+            <i class="bi bi-funnel filter-icon"></i>
             <div class="summary-label">Ongoing</div>
             <div class="summary-value">@Model.OngoingCount</div>
             <div class="summary-count">@(Model.OngoingCount == 1 ? "task" : "tasks") in progress</div>
-        </div>
-        <div class="summary-card completed">
+        </a>
+        <a href="#" class="summary-card completed" data-filter="completed" onclick="filterTasks('completed'); return false;">
+            <i class="bi bi-funnel filter-icon"></i>
             <div class="summary-label">Completed</div>
             <div class="summary-value">@Model.CompletedCount</div>
             <div class="summary-count">@(Model.CompletedCount == 1 ? "task" : "tasks") finished</div>
-        </div>
-        <div class="summary-card overdue">
+        </a>
+        <a href="#" class="summary-card overdue" data-filter="overdue" onclick="filterTasks('overdue'); return false;">
+            <i class="bi bi-funnel filter-icon"></i>
             <div class="summary-label">Overdue</div>
             <div class="summary-value">@Model.OverdueCount</div>
             <div class="summary-count">@(Model.OverdueCount == 1 ? "task" : "tasks") past deadline</div>
-        </div>
+        </a>
+    </div>
+
+    <!-- Active Filter Indicator -->
+    <div id="activeFilterBadge" class="mb-3" style="display: none;">
+        <span class="badge bg-primary p-2">
+            <i class="bi bi-funnel-fill me-1"></i>
+            Filtered by: <span id="filterName"></span>
+            <button type="button" class="btn-close btn-close-white ms-2" style="font-size: 0.6rem;" onclick="clearFilter()" aria-label="Clear filter"></button>
+        </span>
     </div>
 
     <!-- Task Columns -->
@@ -528,6 +562,88 @@
 
 @section Scripts {
     <script>
+        // Filter functionality for status cards
+        function filterTasks(status) {
+            // Remove active state from all cards
+            document.querySelectorAll('.summary-card').forEach(card => card.classList.remove('active'));
+            
+            // Add active state to clicked card
+            document.querySelector('.summary-card[data-filter="' + status + '"]').classList.add('active');
+            
+            // Show filter badge
+            var badge = document.getElementById('activeFilterBadge');
+            var filterName = document.getElementById('filterName');
+            badge.style.display = 'block';
+            
+            var filterLabels = {
+                'todo': 'To Do',
+                'ongoing': 'Ongoing',
+                'completed': 'Completed',
+                'overdue': 'Overdue'
+            };
+            filterName.textContent = filterLabels[status];
+            
+            // Filter task columns
+            var columns = document.querySelectorAll('.task-column');
+            columns.forEach(function(col) {
+                var colStatus = col.dataset.status;
+                
+                if (status === 'todo' && colStatus === '@((int)TaskStatus.ToDo)') {
+                    col.style.display = 'block';
+                } else if (status === 'ongoing' && colStatus === '@((int)TaskStatus.Ongoing)') {
+                    col.style.display = 'block';
+                } else if (status === 'completed' && colStatus === '@((int)TaskStatus.Completed)') {
+                    col.style.display = 'block';
+                } else if (status === 'overdue') {
+                    // For overdue, show all columns but highlight overdue tasks
+                    col.style.display = 'block';
+                    // Hide non-overdue tasks
+                    col.querySelectorAll('.task-item').forEach(function(item) {
+                        if (item.classList.contains('overdue')) {
+                            item.style.display = 'block';
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    });
+                    return;
+                } else if (status !== 'overdue') {
+                    col.style.display = 'none';
+                }
+            });
+            
+            // If not overdue filter, ensure all task items in visible columns are shown
+            if (status !== 'overdue') {
+                document.querySelectorAll('.task-column').forEach(function(col) {
+                    if (col.style.display !== 'none') {
+                        col.querySelectorAll('.task-item').forEach(function(item) {
+                            item.style.display = 'block';
+                        });
+                    }
+                });
+            }
+            
+            // Scroll to columns
+            document.querySelector('.task-columns').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        function clearFilter() {
+            // Remove active state from all cards
+            document.querySelectorAll('.summary-card').forEach(card => card.classList.remove('active'));
+            
+            // Hide filter badge
+            document.getElementById('activeFilterBadge').style.display = 'none';
+            
+            // Show all columns
+            document.querySelectorAll('.task-column').forEach(function(col) {
+                col.style.display = 'block';
+            });
+            
+            // Show all task items
+            document.querySelectorAll('.task-item').forEach(function(item) {
+                item.style.display = 'block';
+            });
+        }
+
         // Complete Task Confirmation Modal
         function showCompleteConfirm(taskId, taskTitle, taskDeadline) {
             document.getElementById('confirmTaskId').value = taskId;
