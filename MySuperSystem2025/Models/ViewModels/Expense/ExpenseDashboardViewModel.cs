@@ -64,12 +64,17 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         public decimal TotalMonthlyFixedBudget { get; set; }
 
         /// <summary>
-        /// Total spent in selected month
+        /// Total spent in selected month (ALL categories - for reporting)
         /// </summary>
         public decimal SelectedMonthTotal { get; set; }
 
         /// <summary>
-        /// Remaining balance for selected month
+        /// Spent this month from MONTHLY BUDGET categories only (for budget deduction)
+        /// </summary>
+        public decimal MonthlyBudgetSpentThisMonth { get; set; }
+
+        /// <summary>
+        /// Remaining balance for selected month (monthly budgets only)
         /// </summary>
         public decimal SelectedMonthRemaining { get; set; }
     }
@@ -106,10 +111,21 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         public decimal BudgetAmount { get; set; }
         public decimal RemainingAmount { get; set; }
         public decimal MonthlyFixedBudget { get; set; }
-        public decimal TotalExpenses => BudgetAmount - RemainingAmount;
+        
+        /// <summary>
+        /// Amount spent in the selected/current month (for display purposes)
+        /// </summary>
+        public decimal SpentThisMonth { get; set; }
+        
+        /// <summary>
+        /// Total expenses against this category (all-time for one-time budgets)
+        /// </summary>
+        public decimal TotalExpenses { get; set; }
+        
         public decimal UsagePercentage => BudgetAmount > 0 ? Math.Round((TotalExpenses / BudgetAmount) * 100, 1) : 0;
-        public bool IsLowBalance => BudgetAmount > 0 && RemainingAmount <= (BudgetAmount * 0.2m);
+        public bool IsLowBalance => HasMonthlyBudget && BudgetAmount > 0 && RemainingAmount <= (BudgetAmount * 0.2m);
         public bool HasBudget => BudgetAmount > 0;
         public bool HasMonthlyBudget => MonthlyFixedBudget > 0;
     }
 }
+
