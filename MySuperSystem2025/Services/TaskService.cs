@@ -30,29 +30,33 @@ namespace MySuperSystem2025.Services
 
             _logger.LogInformation("GetDashboardAsync: Retrieved {Count} tasks for user {UserId}", tasksList.Count, userId);
 
-            var now = DateTime.Now;
+            // Use DateTime.UtcNow for consistent timezone handling (matches database)
+            var now = DateTime.UtcNow;
             var overdueTasks = tasksList
-                .Where(t => t.Deadline.HasValue && t.Deadline.Value < now && t.Status != TaskStatus.Completed)
+                .Where(t => t.Deadline.HasValue && t.Deadline.Value <= now && t.Status != TaskStatus.Completed)
                 .ToList();
 
-            var overdueTaskIds = overdueTasks.Select(t => t.Id).ToHashSet();
-
             // Log deadline information for debugging
-            foreach (var task in tasksList.Take(5))
+            _logger.LogInformation("Current UTC time: {UtcNow}", now.ToString("yyyy-MM-dd HH:mm:ss"));
+            _logger.LogInformation("Found {OverdueCount} overdue tasks", overdueTasks.Count);
+            
+            foreach (var task in overdueTasks.Take(5))
             {
-                _logger.LogInformation("Task {TaskId} ({Title}): Deadline={Deadline}, Status={Status}", 
-                    task.Id, task.Title, task.Deadline?.ToString("yyyy-MM-dd HH:mm") ?? "NULL", task.Status);
+                _logger.LogInformation("Overdue Task {TaskId} ({Title}): Deadline={Deadline} UTC, Status={Status}", 
+                    task.Id, task.Title, task.Deadline?.ToString("yyyy-MM-dd HH:mm:ss"), task.Status);
             }
 
+            // FIX: Don't exclude overdue tasks from their status columns
+            // Overdue is a FLAG, not a separate status - tasks stay in their status but are marked overdue
             return new TaskDashboardViewModel
             {
-                PendingCount = tasksList.Count(t => t.Status == TaskStatus.ToDo && !overdueTaskIds.Contains(t.Id)),
-                OngoingCount = tasksList.Count(t => t.Status == TaskStatus.Ongoing && !overdueTaskIds.Contains(t.Id)),
+                PendingCount = tasksList.Count(t => t.Status == TaskStatus.ToDo),
+                OngoingCount = tasksList.Count(t => t.Status == TaskStatus.Ongoing),
                 CompletedCount = tasksList.Count(t => t.Status == TaskStatus.Completed),
                 OverdueCount = overdueTasks.Count,
                 TotalCount = tasksList.Count,
-                ToDoTasks = tasksList.Where(t => t.Status == TaskStatus.ToDo && !overdueTaskIds.Contains(t.Id)).Select(MapToListItem).ToList(),
-                OngoingTasks = tasksList.Where(t => t.Status == TaskStatus.Ongoing && !overdueTaskIds.Contains(t.Id)).Select(MapToListItem).ToList(),
+                ToDoTasks = tasksList.Where(t => t.Status == TaskStatus.ToDo).Select(MapToListItem).ToList(),
+                OngoingTasks = tasksList.Where(t => t.Status == TaskStatus.Ongoing).Select(MapToListItem).ToList(),
                 CompletedTasks = tasksList.Where(t => t.Status == TaskStatus.Completed).Take(10).Select(MapToListItem).ToList(),
                 OverdueTasks = overdueTasks.Select(MapToListItem).ToList()
             };
@@ -251,8 +255,9 @@ namespace MySuperSystem2025.Services
 
         private TaskListItemViewModel MapToListItem(TaskItem task)
         {
-            var now = DateTime.Now;
-            var isOverdue = task.Deadline.HasValue && task.Deadline.Value < now && task.Status != TaskStatus.Completed;
+            // Use DateTime.UtcNow for consistent timezone handling
+            var now = DateTime.UtcNow;
+            var isOverdue = task.Deadline.HasValue && task.Deadline.Value <= now && task.Status != TaskStatus.Completed;
             
             return new TaskListItemViewModel
             {
