@@ -77,6 +77,64 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         /// Remaining balance for selected month (monthly budgets only)
         /// </summary>
         public decimal SelectedMonthRemaining { get; set; }
+
+        /// <summary>
+        /// Total accumulated savings from past months (monthly budgets only).
+        /// Savings = SUM of (MonthlyFixedBudget - SpentThatMonth) for each completed past month.
+        /// Negative months (overspent) are clamped to 0 so they don't reduce savings.
+        /// </summary>
+        public decimal TotalMonthlySavings { get; set; }
+    }
+
+    /// <summary>
+    /// View model for the monthly savings breakdown page
+    /// </summary>
+    public class MonthlySavingsViewModel
+    {
+        public decimal GrandTotalSavings { get; set; }
+        public decimal TotalMonthlyFixedBudget { get; set; }
+        public List<CategorySavingsViewModel> Categories { get; set; } = new();
+        public List<MonthSavingsRow> MonthlyBreakdown { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Per-category savings totals
+    /// </summary>
+    public class CategorySavingsViewModel
+    {
+        public int CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal MonthlyFixedBudget { get; set; }
+        public decimal TotalSaved { get; set; }
+        public decimal TotalSpent { get; set; }
+        public decimal TotalBudgeted { get; set; }
+        public int MonthCount { get; set; }
+    }
+
+    /// <summary>
+    /// One row per past month with per-category breakdown
+    /// </summary>
+    public class MonthSavingsRow
+    {
+        public int Year { get; set; }
+        public int Month { get; set; }
+        public string MonthDisplay { get; set; } = string.Empty;
+        public decimal TotalBudget { get; set; }
+        public decimal TotalSpent { get; set; }
+        public decimal TotalSaved { get; set; }
+        public List<CategoryMonthSaving> CategorySavings { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Savings for a single category in a single month
+    /// </summary>
+    public class CategoryMonthSaving
+    {
+        public int CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal Budget { get; set; }
+        public decimal Spent { get; set; }
+        public decimal Saved { get; set; }
     }
 
     /// <summary>

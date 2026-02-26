@@ -312,5 +312,12 @@ namespace MySuperSystem2025.Controllers
 
             return File(pdfBytes, "application/pdf", $"ExpenseReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
         }
+
+        // GET: /Expense/Savings
+        public async Task<IActionResult> Savings()
+        {
+            var model = await _expenseService.GetMonthlySavingsAsync(UserId);
+            return View(model);
+        }
     }
 }

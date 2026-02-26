@@ -1,0 +1,192 @@
+@model MySuperSystem2025.Models.ViewModels.Expense.MonthlySavingsViewModel
+@{
+    ViewData["Title"] = "Monthly Savings";
+}
+
+<style>
+    .savings-page { max-width: 1400px; margin: 0 auto; }
+    .page-header { margin-bottom: 2rem; }
+    .page-header h1 { font-size: 1.75rem; font-weight: 600; color: #1a1a1a; margin-bottom: 0.5rem; }
+    .savings-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
+    .savings-card { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; border-left: 4px solid; }
+    .savings-card.purple { border-left-color: #7c3aed; }
+    .savings-card.primary { border-left-color: #2563eb; }
+    .savings-label { font-size: 0.875rem; color: #6c757d; margin-bottom: 0.5rem; }
+    .savings-value { font-size: 1.75rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .savings-sub { font-size: 0.875rem; color: #6c757d; }
+    .main-card { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.75rem; margin-bottom: 2rem; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+    .card-title { font-size: 1rem; font-weight: 600; color: #1a1a1a; }
+    .cat-savings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .cat-card { background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 1.25rem; }
+    .cat-name { font-weight: 600; color: #1a1a1a; margin-bottom: 0.5rem; font-size: 1rem; }
+    .cat-budget { font-size: 0.8125rem; color: #6c757d; margin-bottom: 0.75rem; }
+    .cat-stats { display: flex; justify-content: space-between; gap: 0.5rem; }
+    .cat-stat { text-align: center; flex: 1; }
+    .cat-stat-value { font-size: 1.125rem; font-weight: 600; }
+    .cat-stat-label { font-size: 0.75rem; color: #6c757d; }
+    .savings-table { width: 100%; border-collapse: collapse; }
+    .savings-table th { font-size: 0.8125rem; font-weight: 600; color: #6c757d; padding: 0.75rem 1rem; text-align: left; border-bottom: 2px solid #e5e7eb; white-space: nowrap; }
+    .savings-table td { padding: 0.75rem 1rem; border-bottom: 1px solid #f3f4f6; font-size: 0.875rem; }
+    .savings-table tr:hover { background: #f9fafb; }
+    .savings-table .month-header { font-weight: 600; color: #1a1a1a; background: #f9fafb; }
+    .savings-table .cat-row td { padding-left: 2rem; color: #4b5563; font-size: 0.8125rem; }
+    .text-saved { color: #16a34a; font-weight: 600; }
+    .text-overspent { color: #dc2626; font-weight: 600; }
+    .text-purple { color: #7c3aed; }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: #6c757d; }
+    .empty-state i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
+    .progress-mini { height: 6px; background: #f3f4f6; border-radius: 3px; overflow: hidden; margin: 0.5rem 0; }
+    .progress-mini-bar { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+</style>
+
+<div class="savings-page">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1><i class="bi bi-piggy-bank me-2"></i>Monthly Savings</h1>
+                <p class="text-muted mb-0">Track savings from your monthly budget categories</p>
+            </div>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    @if (!Model.Categories.Any())
+    {
+        <div class="main-card">
+            <div class="empty-state">
+                <i class="bi bi-piggy-bank"></i>
+                <p>No monthly budget categories found.</p>
+                <p class="text-muted">Create categories with a monthly fixed budget to start tracking savings.</p>
+                <a asp-action="Categories" class="btn btn-primary mt-2">Manage Categories</a>
+            </div>
+        </div>
+    }
+    else if (!Model.MonthlyBreakdown.Any())
+    {
+        <div class="savings-summary-grid">
+            <div class="savings-card purple">
+                <div class="savings-label"><i class="bi bi-piggy-bank me-1"></i>Total Savings</div>
+                <div class="savings-value text-purple">&#8369;0.00</div>
+                <div class="savings-sub">No completed months yet</div>
+            </div>
+        </div>
+        <div class="main-card">
+            <div class="empty-state">
+                <i class="bi bi-calendar-check"></i>
+                <p>No past months to calculate savings from yet.</p>
+                <p class="text-muted">Savings will appear here after your first month is completed.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Summary Cards -->
+        <div class="savings-summary-grid">
+            <div class="savings-card purple">
+                <div class="savings-label"><i class="bi bi-piggy-bank me-1"></i>Total Savings</div>
+                <div class="savings-value text-purple">&#8369;@Model.GrandTotalSavings.ToString("N2")</div>
+                <div class="savings-sub">Accumulated from @Model.MonthlyBreakdown.Count @(Model.MonthlyBreakdown.Count == 1 ? "month" : "months")</div>
+            </div>
+            <div class="savings-card primary">
+                <div class="savings-label"><i class="bi bi-arrow-repeat me-1"></i>Monthly Budget</div>
+                <div class="savings-value text-primary">&#8369;@Model.TotalMonthlyFixedBudget.ToString("N2")</div>
+                <div class="savings-sub">@Model.Categories.Count @(Model.Categories.Count == 1 ? "category" : "categories") tracked</div>
+            </div>
+        </div>
+
+        <!-- Per-Category Savings Cards -->
+        <div class="main-card">
+            <div class="card-header">
+                <h5 class="card-title">Savings per Category</h5>
+            </div>
+            <div class="cat-savings-grid">
+                @foreach (var cat in Model.Categories)
+                {
+                    var savingsPercent = cat.TotalBudgeted > 0 ? Math.Round((cat.TotalSaved / cat.TotalBudgeted) * 100, 1) : 0;
+                    <div class="cat-card">
+                        <div class="cat-name">@cat.CategoryName</div>
+                        <div class="cat-budget">
+                            <i class="bi bi-arrow-repeat me-1"></i>&#8369;@cat.MonthlyFixedBudget.ToString("N2") / month · @cat.MonthCount @(cat.MonthCount == 1 ? "month" : "months")
+                        </div>
+                        <div class="progress-mini">
+                            <div class="progress-mini-bar" style="width: @Math.Min(savingsPercent, 100)%; background: #7c3aed;"></div>
+                        </div>
+                        <div class="cat-stats">
+                            <div class="cat-stat">
+                                <div class="cat-stat-value text-primary">&#8369;@cat.TotalBudgeted.ToString("N2")</div>
+                                <div class="cat-stat-label">Budgeted</div>
+                            </div>
+                            <div class="cat-stat">
+                                <div class="cat-stat-value text-danger">&#8369;@cat.TotalSpent.ToString("N2")</div>
+                                <div class="cat-stat-label">Spent</div>
+                            </div>
+                            <div class="cat-stat">
+                                <div class="cat-stat-value text-purple">&#8369;@cat.TotalSaved.ToString("N2")</div>
+                                <div class="cat-stat-label">Saved</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Month-by-Month Breakdown Table -->
+        <div class="main-card">
+            <div class="card-header">
+                <h5 class="card-title">Month-by-Month Breakdown</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="savings-table">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th style="text-align: right;">Budget</th>
+                            <th style="text-align: right;">Spent</th>
+                            <th style="text-align: right;">Saved</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.MonthlyBreakdown)
+                        {
+                            <tr class="month-header">
+                                <td><i class="bi bi-calendar3 me-2"></i>@row.MonthDisplay</td>
+                                <td style="text-align: right;">&#8369;@row.TotalBudget.ToString("N2")</td>
+                                <td style="text-align: right; color: #dc2626;">&#8369;@row.TotalSpent.ToString("N2")</td>
+                                <td style="text-align: right;" class="@(row.TotalSaved > 0 ? "text-saved" : "")">&#8369;@row.TotalSaved.ToString("N2")</td>
+                            </tr>
+                            @foreach (var cat in row.CategorySavings)
+                            {
+                                <tr class="cat-row">
+                                    <td>@cat.CategoryName</td>
+                                    <td style="text-align: right;">&#8369;@cat.Budget.ToString("N2")</td>
+                                    <td style="text-align: right;">&#8369;@cat.Spent.ToString("N2")</td>
+                                    <td style="text-align: right;" class="@(cat.Saved > 0 ? "text-saved" : "")">
+                                        @if (cat.Saved > 0)
+                                        {
+                                            <span>&#8369;@cat.Saved.ToString("N2")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">&#8369;0.00</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr style="border-top: 2px solid #e5e7eb; font-weight: 600;">
+                            <td>Grand Total</td>
+                            <td style="text-align: right;">&#8369;@Model.MonthlyBreakdown.Sum(r => r.TotalBudget).ToString("N2")</td>
+                            <td style="text-align: right; color: #dc2626;">&#8369;@Model.MonthlyBreakdown.Sum(r => r.TotalSpent).ToString("N2")</td>
+                            <td style="text-align: right;" class="text-purple">&#8369;@Model.GrandTotalSavings.ToString("N2")</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    }
+</div>

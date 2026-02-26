@@ -36,5 +36,10 @@ namespace MySuperSystem2025.Services.Interfaces
         /// Gets category balances for a specific month
         /// </summary>
         Task<List<CategoryBalanceViewModel>> GetCategoryBalancesForMonthAsync(string userId, int year, int month);
+
+        /// <summary>
+        /// Gets per-category monthly savings breakdown for all past months
+        /// </summary>
+        Task<MonthlySavingsViewModel> GetMonthlySavingsAsync(string userId);
     }
 }

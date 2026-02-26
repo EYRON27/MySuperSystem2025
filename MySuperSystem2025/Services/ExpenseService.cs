@@ -145,6 +145,40 @@ namespace MySuperSystem2025.Services
                 .Sum(e => e.Amount);
             var selectedMonthRemaining = totalMonthlyFixedBudget - monthlyBudgetSpentThisMonth;
 
+            // Calculate accumulated savings from PAST months (monthly budget categories only)
+            // Savings = for each past completed month, SUM of (MonthlyFixedBudget - SpentThatMonth) per category
+            // Overspent months are clamped to 0 (don't reduce savings)
+            var monthlyCategoriesList = categoriesList.Where(c => c.MonthlyFixedBudget > 0).ToList();
+            decimal totalMonthlySavings = 0;
+
+            if (monthlyCategoriesList.Any())
+            {
+                // Iterate from BudgetStartDate to the month BEFORE the selected/filter month
+                var savingsDate = BudgetStartDate;
+                var selectedMonthStart = new DateTime(filterYear, filterMonth, 1);
+
+                while (savingsDate < selectedMonthStart)
+                {
+                    var monthStart = new DateTime(savingsDate.Year, savingsDate.Month, 1);
+                    var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+                    foreach (var cat in monthlyCategoriesList)
+                    {
+                        var spentInMonth = expensesList
+                            .Where(e => e.CategoryId == cat.Id && e.Date >= monthStart && e.Date <= monthEnd)
+                            .Sum(e => e.Amount);
+
+                        var savedThisMonth = cat.MonthlyFixedBudget - spentInMonth;
+                        if (savedThisMonth > 0)
+                        {
+                            totalMonthlySavings += savedThisMonth;
+                        }
+                    }
+
+                    savingsDate = savingsDate.AddMonths(1);
+                }
+            }
+
             return new ExpenseDashboardViewModel
             {
                 TodayTotal = todayExpenses.Sum(e => e.Amount),
@@ -168,7 +202,8 @@ namespace MySuperSystem2025.Services
                 TotalMonthlyFixedBudget = totalMonthlyFixedBudget,
                 SelectedMonthTotal = selectedMonthTotal,
                 MonthlyBudgetSpentThisMonth = monthlyBudgetSpentThisMonth,
-                SelectedMonthRemaining = selectedMonthRemaining > 0 ? selectedMonthRemaining : 0
+                SelectedMonthRemaining = selectedMonthRemaining > 0 ? selectedMonthRemaining : 0,
+                TotalMonthlySavings = totalMonthlySavings
             };
         }
 
@@ -943,6 +978,83 @@ namespace MySuperSystem2025.Services
                 _logger.LogError(ex, "Error setting budget for category {CategoryId}", categoryId);
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Gets per-category monthly savings breakdown for all past months (monthly budget categories only)
+        /// </summary>
+        public async Task<MonthlySavingsViewModel> GetMonthlySavingsAsync(string userId)
+        {
+            var categories = await _unitOfWork.ExpenseCategories.GetUserCategoriesAsync(userId);
+            var monthlyCats = categories.Where(c => c.MonthlyFixedBudget > 0).ToList();
+            var allExpenses = (await _unitOfWork.Expenses.GetUserExpensesAsync(userId)).ToList();
+
+            var today = DateTime.Today;
+            var currentMonthStart = new DateTime(today.Year, today.Month, 1);
+
+            var monthlyBreakdown = new List<MonthSavingsRow>();
+            var categoryTotals = monthlyCats.ToDictionary(c => c.Id, c => new CategorySavingsViewModel
+            {
+                CategoryId = c.Id,
+                CategoryName = c.Name,
+                MonthlyFixedBudget = c.MonthlyFixedBudget
+            });
+
+            // Iterate from BudgetStartDate to the month BEFORE current
+            var date = BudgetStartDate;
+            while (date < currentMonthStart)
+            {
+                var monthStart = new DateTime(date.Year, date.Month, 1);
+                var monthEnd = monthStart.AddMonths(1).AddDays(-1);
+
+                var row = new MonthSavingsRow
+                {
+                    Year = date.Year,
+                    Month = date.Month,
+                    MonthDisplay = monthStart.ToString("MMMM yyyy")
+                };
+
+                foreach (var cat in monthlyCats)
+                {
+                    var spent = allExpenses
+                        .Where(e => e.CategoryId == cat.Id && e.Date >= monthStart && e.Date <= monthEnd)
+                        .Sum(e => e.Amount);
+
+                    var saved = Math.Max(cat.MonthlyFixedBudget - spent, 0);
+
+                    row.CategorySavings.Add(new CategoryMonthSaving
+                    {
+                        CategoryId = cat.Id,
+                        CategoryName = cat.Name,
+                        Budget = cat.MonthlyFixedBudget,
+                        Spent = spent,
+                        Saved = saved
+                    });
+
+                    row.TotalBudget += cat.MonthlyFixedBudget;
+                    row.TotalSpent += spent;
+                    row.TotalSaved += saved;
+
+                    categoryTotals[cat.Id].TotalSpent += spent;
+                    categoryTotals[cat.Id].TotalSaved += saved;
+                    categoryTotals[cat.Id].TotalBudgeted += cat.MonthlyFixedBudget;
+                    categoryTotals[cat.Id].MonthCount++;
+                }
+
+                monthlyBreakdown.Add(row);
+                date = date.AddMonths(1);
+            }
+
+            // Most recent month first
+            monthlyBreakdown.Reverse();
+
+            return new MonthlySavingsViewModel
+            {
+                GrandTotalSavings = categoryTotals.Values.Sum(c => c.TotalSaved),
+                TotalMonthlyFixedBudget = monthlyCats.Sum(c => c.MonthlyFixedBudget),
+                Categories = categoryTotals.Values.OrderByDescending(c => c.TotalSaved).ToList(),
+                MonthlyBreakdown = monthlyBreakdown
+            };
         }
 
         private static ExpenseListItemViewModel MapToListItem(Expense expense)
