@@ -166,13 +166,20 @@
                             <div>
                                 @if (category.HasMonthlyBudget)
                                 {
-                                    <span class="badge bg-info me-1" title="Monthly Budget - Resets every month"><i class="bi bi-arrow-repeat"></i></span>
+                                    @if (category.IsPaused)
+                                    {
+                                        <span class="badge bg-warning text-dark me-1" title="Monthly Budget - Paused"><i class="bi bi-pause-circle"></i></span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-info me-1" title="Monthly Budget - Resets every month"><i class="bi bi-arrow-repeat"></i></span>
+                                    }
                                 }
                                 else
                                 {
                                     <span class="badge bg-secondary me-1" title="One-Time Budget"><i class="bi bi-lock"></i></span>
                                 }
-                                @if (category.HasMonthlyBudget && category.IsLowBalance)
+                                @if (category.HasMonthlyBudget && !category.IsPaused && category.IsLowBalance)
                                 {
                                     <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle"></i></span>
                                 }
@@ -180,14 +187,28 @@
                         </div>
                         @if (category.HasMonthlyBudget)
                         {
-                            <!-- Monthly Budget: Show progress bar and remaining for THIS MONTH -->
-                            <div class="category-progress">
-                                <div class="category-progress-bar" style="width: @Math.Min(category.UsagePercentage, 100)%; background: @(category.UsagePercentage > 80 ? "#dc2626" : category.UsagePercentage > 50 ? "#d97706" : "#16a34a");"></div>
-                            </div>
-                            <div class="d-flex justify-content-between" style="font-size: 0.875rem;">
-                                <span class="text-muted">Monthly: &#8369;@category.BudgetAmount.ToString("N2")</span>
-                                <span class="fw-bold @(category.IsLowBalance ? "text-warning" : "text-success")">Left: &#8369;@category.RemainingAmount.ToString("N2")</span>
-                            </div>
+                            @if (category.IsPaused)
+                            {
+                                <!-- Paused Monthly Budget -->
+                                <div style="background: #fef3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 0.75rem; font-size: 0.8125rem; color: #664d03; text-align: center;">
+                                    <i class="bi bi-pause-circle me-1"></i>Budget paused — not counting toward monthly totals
+                                </div>
+                                <div class="d-flex justify-content-between mt-2" style="font-size: 0.875rem;">
+                                    <span class="text-muted">Monthly: &#8369;@category.BudgetAmount.ToString("N2")</span>
+                                    <span class="text-muted">Paused</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <!-- Active Monthly Budget: Show progress bar and remaining for THIS MONTH -->
+                                <div class="category-progress">
+                                    <div class="category-progress-bar" style="width: @Math.Min(category.UsagePercentage, 100)%; background: @(category.UsagePercentage > 80 ? "#dc2626" : category.UsagePercentage > 50 ? "#d97706" : "#16a34a");"></div>
+                                </div>
+                                <div class="d-flex justify-content-between" style="font-size: 0.875rem;">
+                                    <span class="text-muted">Monthly: &#8369;@category.BudgetAmount.ToString("N2")</span>
+                                    <span class="fw-bold @(category.IsLowBalance ? "text-warning" : "text-success")">Left: &#8369;@category.RemainingAmount.ToString("N2")</span>
+                                </div>
+                            }
                         }
                         else
                         {

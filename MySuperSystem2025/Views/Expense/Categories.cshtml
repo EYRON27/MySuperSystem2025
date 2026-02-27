@@ -193,9 +193,18 @@
                             <div>
                                 @if (category.HasMonthlyBudget)
                                 {
-                                    <span class="badge bg-info category-badge me-1" title="Monthly Reset">
-                                        <i class="bi bi-arrow-repeat"></i>
-                                    </span>
+                                    @if (category.IsPaused)
+                                    {
+                                        <span class="badge bg-warning text-dark category-badge me-1" title="Monthly Budget - Paused">
+                                            <i class="bi bi-pause-circle"></i>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-info category-badge me-1" title="Monthly Budget - Active">
+                                            <i class="bi bi-arrow-repeat"></i>
+                                        </span>
+                                    }
                                 }
                                 @if (category.IsDefault)
                                 {

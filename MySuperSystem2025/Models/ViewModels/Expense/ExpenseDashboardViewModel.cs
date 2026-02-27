@@ -171,6 +171,11 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         public decimal MonthlyFixedBudget { get; set; }
         
         /// <summary>
+        /// Whether the monthly budget is currently active (not paused)
+        /// </summary>
+        public bool IsBudgetActive { get; set; } = true;
+
+        /// <summary>
         /// Amount spent in the selected/current month (for display purposes)
         /// </summary>
         public decimal SpentThisMonth { get; set; }
@@ -181,9 +186,10 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         public decimal TotalExpenses { get; set; }
         
         public decimal UsagePercentage => BudgetAmount > 0 ? Math.Round((TotalExpenses / BudgetAmount) * 100, 1) : 0;
-        public bool IsLowBalance => HasMonthlyBudget && BudgetAmount > 0 && RemainingAmount <= (BudgetAmount * 0.2m);
+        public bool IsLowBalance => HasMonthlyBudget && !IsPaused && BudgetAmount > 0 && RemainingAmount <= (BudgetAmount * 0.2m);
         public bool HasBudget => BudgetAmount > 0;
         public bool HasMonthlyBudget => MonthlyFixedBudget > 0;
+        public bool IsPaused => MonthlyFixedBudget > 0 && !IsBudgetActive;
     }
 }
 

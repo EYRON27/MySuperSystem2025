@@ -130,14 +130,16 @@ namespace MySuperSystem2025.Services
             // Generate available months (from December 2025 to current)
             var availableMonths = GenerateAvailableMonths(selectedMonth);
 
-            // Calculate totals for selected month
+            // Calculate totals for selected month — only ACTIVE monthly budget categories
             var selectedMonthTotal = selectedMonthExpenses.Sum(e => e.Amount);
-            var totalMonthlyFixedBudget = categoriesList.Sum(c => c.MonthlyFixedBudget);
+            var totalMonthlyFixedBudget = categoriesList
+                .Where(c => c.MonthlyFixedBudget > 0 && c.IsBudgetActive)
+                .Sum(c => c.MonthlyFixedBudget);
             
-            // FIX: Only count expenses from MONTHLY budget categories for the remaining calculation
+            // FIX: Only count expenses from ACTIVE MONTHLY budget categories for the remaining calculation
             // One-time category expenses should NOT affect the monthly budget remaining
             var monthlyCategoryIds = categoriesList
-                .Where(c => c.MonthlyFixedBudget > 0)
+                .Where(c => c.MonthlyFixedBudget > 0 && c.IsBudgetActive)
                 .Select(c => c.Id)
                 .ToHashSet();
             var monthlyBudgetSpentThisMonth = selectedMonthExpenses
@@ -148,7 +150,7 @@ namespace MySuperSystem2025.Services
             // Calculate accumulated savings from PAST months (monthly budget categories only)
             // Savings = for each past completed month, SUM of (MonthlyFixedBudget - SpentThatMonth) per category
             // Overspent months are clamped to 0 (don't reduce savings)
-            var monthlyCategoriesList = categoriesList.Where(c => c.MonthlyFixedBudget > 0).ToList();
+            var monthlyCategoriesList = categoriesList.Where(c => c.MonthlyFixedBudget > 0 && c.IsBudgetActive).ToList();
             decimal totalMonthlySavings = 0;
 
             if (monthlyCategoriesList.Any())
@@ -282,6 +284,7 @@ namespace MySuperSystem2025.Services
                     BudgetAmount = budget,
                     RemainingAmount = remaining > 0 ? remaining : 0,
                     MonthlyFixedBudget = c.MonthlyFixedBudget,
+                    IsBudgetActive = c.IsBudgetActive,
                     SpentThisMonth = spentThisMonth,
                     TotalExpenses = totalExpensesForBudget
                 };
@@ -301,8 +304,8 @@ namespace MySuperSystem2025.Services
 
                 foreach (var category in categories)
                 {
-                    // Only reset categories with monthly fixed budget
-                    if (category.MonthlyFixedBudget <= 0) continue;
+                    // Only reset categories with monthly fixed budget that are ACTIVE
+                    if (category.MonthlyFixedBudget <= 0 || !category.IsBudgetActive) continue;
 
                     // Check if needs reset (different year or month)
                     if (category.LastResetYear != now.Year || category.LastResetMonth != now.Month)
@@ -668,7 +671,8 @@ namespace MySuperSystem2025.Services
                     ExpenseCount = c.Expenses.Count,
                     BudgetAmount = c.MonthlyFixedBudget > 0 ? c.MonthlyFixedBudget : c.BudgetAmount,
                     RemainingAmount = remaining > 0 ? remaining : 0,
-                    MonthlyFixedBudget = c.MonthlyFixedBudget
+                    MonthlyFixedBudget = c.MonthlyFixedBudget,
+                    IsBudgetActive = c.IsBudgetActive
                 };
             }).ToList();
         }
@@ -717,7 +721,8 @@ namespace MySuperSystem2025.Services
                 BudgetAmount = budget,
                 RemainingAmount = remaining > 0 ? remaining : 0,
                 TotalExpenses = totalExpenses,
-                MonthlyFixedBudget = category.MonthlyFixedBudget
+                MonthlyFixedBudget = category.MonthlyFixedBudget,
+                IsBudgetActive = category.IsBudgetActive
             };
         }
 
@@ -765,7 +770,8 @@ namespace MySuperSystem2025.Services
                 ExpenseCount = category.Expenses.Count(e => !e.IsDeleted),
                 BudgetAmount = budget,
                 RemainingAmount = remaining > 0 ? remaining : 0,
-                MonthlyFixedBudget = category.MonthlyFixedBudget
+                MonthlyFixedBudget = category.MonthlyFixedBudget,
+                IsBudgetActive = category.IsBudgetActive
             };
         }
 
@@ -793,8 +799,9 @@ namespace MySuperSystem2025.Services
                     UserId = userId,
                     IsDefault = false,
                     BudgetAmount = budgetAmount,
-                    RemainingAmount = budgetAmount, // Initially, remaining = budget
+                    RemainingAmount = budgetAmount,
                     MonthlyFixedBudget = model.MonthlyFixedBudget,
+                    IsBudgetActive = model.IsBudgetActive,
                     LastResetYear = model.MonthlyFixedBudget > 0 ? now.Year : null,
                     LastResetMonth = model.MonthlyFixedBudget > 0 ? now.Month : null
                 };
@@ -836,6 +843,7 @@ namespace MySuperSystem2025.Services
                 category.Name = model.Name;
                 category.Description = model.Description;
                 category.MonthlyFixedBudget = model.MonthlyFixedBudget;
+                category.IsBudgetActive = model.IsBudgetActive;
 
                 // Determine budget amount
                 var newBudget = model.MonthlyFixedBudget > 0 ? model.MonthlyFixedBudget : model.BudgetAmount;

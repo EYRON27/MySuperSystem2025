@@ -29,6 +29,11 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         public decimal MonthlyFixedBudget { get; set; }
 
         /// <summary>
+        /// Whether the monthly budget is currently active (not paused)
+        /// </summary>
+        public bool IsBudgetActive { get; set; } = true;
+
+        /// <summary>
         /// Total expenses (Budget - Remaining)
         /// </summary>
         public decimal TotalExpenses => BudgetAmount - RemainingAmount;
@@ -47,6 +52,11 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         /// Indicates if this category has monthly fixed budget
         /// </summary>
         public bool HasMonthlyBudget => MonthlyFixedBudget > 0;
+
+        /// <summary>
+        /// Whether this monthly budget is currently paused
+        /// </summary>
+        public bool IsPaused => MonthlyFixedBudget > 0 && !IsBudgetActive;
     }
 
     /// <summary>
@@ -71,11 +81,17 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         [Range(0, double.MaxValue, ErrorMessage = "Monthly budget must be a positive value")]
         [Display(Name = "Monthly Fixed Budget (?) - Resets every month")]
         public decimal MonthlyFixedBudget { get; set; } = 0;
+
+        /// <summary>
+        /// Whether the monthly budget is active. Set to false to pause resets.
+        /// </summary>
+        [Display(Name = "Budget Active")]
+        public bool IsBudgetActive { get; set; } = true;
     }
 
     /// <summary>
     /// View model for editing expense categories
-    /// </summary>
+    /// /// </summary>
     public class EditExpenseCategoryViewModel : CreateExpenseCategoryViewModel
     {
         public int Id { get; set; }
@@ -92,3 +108,4 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         public decimal TotalExpenses { get; set; }
     }
 }
+

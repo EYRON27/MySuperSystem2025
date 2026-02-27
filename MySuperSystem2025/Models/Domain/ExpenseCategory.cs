@@ -45,6 +45,13 @@ namespace MySuperSystem2025.Models.Domain
         public decimal MonthlyFixedBudget { get; set; } = 0;
 
         /// <summary>
+        /// Controls whether the monthly budget is currently active.
+        /// When false (paused), the budget will NOT reset and will NOT count toward monthly totals.
+        /// Useful for seasonal budgets like school allowance.
+        /// </summary>
+        public bool IsBudgetActive { get; set; } = true;
+
+        /// <summary>
         /// Year of last budget reset (for tracking monthly resets)
         /// </summary>
         public int? LastResetYear { get; set; }
@@ -90,10 +97,11 @@ namespace MySuperSystem2025.Models.Domain
         {
             get
             {
-                if (MonthlyFixedBudget <= 0) return false;
+                if (MonthlyFixedBudget <= 0 || !IsBudgetActive) return false;
                 var now = DateTime.Now;
                 return LastResetYear != now.Year || LastResetMonth != now.Month;
             }
         }
     }
 }
+
