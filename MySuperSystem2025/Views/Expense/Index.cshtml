@@ -34,15 +34,15 @@
     .category-progress-bar { height: 100%; background: #2563eb; transition: width 0.3s ease; border-radius: 3px; }
     .recent-table { width: 100%; border-collapse: collapse; }
     .recent-table th { font-size: 0.875rem; font-weight: 500; color: #6c757d; padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
-    .recent-table td { padding: 1rem; border-bottom: 1px solid #f3f4f6; font-size: 0.875rem; }
-    .recent-table tr:last-child td { border-bottom: none; }
-    .recent-table tr:hover { background: #f9fafb; }
+    .recent-table td { padding: 1rem; border-bottom: 1px solid #f3f4f6; font-size: 0.875rem; white-space: nowrap; }
+    .recent-table td.wrap { white-space: normal; }
     .empty-state { text-align: center; padding: 3rem 1rem; color: #6c757d; }
     .empty-state i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
     .action-buttons { display: flex; gap: 0.75rem; flex-wrap: wrap; }
     .btn-primary { background: #2563eb; border-color: #2563eb; padding: 0.625rem 1.25rem; font-size: 0.875rem; font-weight: 500; }
     .btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; }
     .btn-outline-secondary, .btn-outline-danger { padding: 0.625rem 1.25rem; font-size: 0.875rem; font-weight: 500; }
+    .btn-filter-reset { padding: 0.375rem 0.75rem; font-size: 0.8125rem; font-weight: 500; white-space: nowrap; }
     .btn-action { padding: 0.5rem 0.75rem; font-size: 0.875rem; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; }
     .btn-action i { font-size: 1rem; }
     .btn-action.btn-sm { padding: 0.375rem 0.625rem; min-width: 32px; height: 32px; }
@@ -93,7 +93,7 @@
                         <option value="@monthOption.Value" selected="@monthOption.IsSelected">@monthOption.Display</option>
                     }
                 </select>
-                <a asp-action="Index" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-circle me-1"></i>Reset</a>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-filter-reset"><i class="bi bi-x-circle me-1"></i>Reset</a>
             </form>
         </div>
     }
@@ -313,7 +313,7 @@
                             <tr>
                                 <td>@expense.Date.ToString("MMM dd, yyyy")</td>
                                 <td><span class="badge bg-secondary">@expense.CategoryName</span></td>
-                                <td>
+                                <td class="wrap">
                                     @if (isFundsAdded)
                                     {
                                         <span class="text-success"><i class="bi bi-plus-circle me-1"></i>@expense.Reason</span>
