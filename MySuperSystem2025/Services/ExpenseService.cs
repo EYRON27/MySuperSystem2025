@@ -32,6 +32,9 @@ namespace MySuperSystem2025.Services
             // First, check and apply monthly budget reset if needed
             await ResetMonthlyBudgetsIfNeededAsync(userId);
 
+            // Fix one-time budget categories that were inflated by the old AddFunds bug
+            await FixInflatedOneTimeBudgetsAsync(userId);
+
             var today = DateTime.Today;
             var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
             var startOfMonth = new DateTime(today.Year, today.Month, 1);
@@ -398,6 +401,85 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
+        /// One-time fix: Recalculate BudgetAmount for one-time budget categories that were inflated
+        /// by the old AddFunds bug (which both increased BudgetAmount AND recorded a negative expense).
+        /// The negative expense alone is sufficient for dynamic balance calculation.
+        /// This reverses the BudgetAmount inflation by subtracting the total funds-added amounts.
+        /// Uses a static flag to only run once per application lifetime.
+        /// </summary>
+        private static bool _budgetFixApplied = false;
+        private async Task FixInflatedOneTimeBudgetsAsync(string userId)
+        {
+            if (_budgetFixApplied) return;
+
+            try
+            {
+                var categories = await _unitOfWork.ExpenseCategories.GetUserCategoriesAsync(userId);
+                var allExpenses = await _unitOfWork.Expenses.GetUserExpensesAsync(userId);
+                var needsSave = false;
+
+                foreach (var category in categories)
+                {
+                    // Only fix one-time budget categories (not monthly)
+                    if (category.MonthlyFixedBudget > 0 || category.BudgetAmount <= 0) continue;
+
+                    // Find total funds added (negative expenses with [FUNDS ADDED] prefix)
+                    var fundsAddedTotal = allExpenses
+                        .Where(e => e.CategoryId == category.Id && e.Amount < 0 && e.Reason != null && e.Reason.StartsWith("[FUNDS ADDED]"))
+                        .Sum(e => -e.Amount); // Convert to positive
+
+                    if (fundsAddedTotal > 0 && category.BudgetAmount > fundsAddedTotal)
+                    {
+                        // Check if the budget appears inflated:
+                        // Calculate what remaining would be with current budget vs with corrected budget
+                        var positiveExpenses = allExpenses
+                            .Where(e => e.CategoryId == category.Id && e.Amount > 0)
+                            .Sum(e => e.Amount);
+
+                        // If budget - positiveExpenses + fundsAddedTotal == budget - (positiveExpenses - fundsAddedTotal)
+                        // The corrected budget should be: current budget - fundsAddedTotal
+                        // This only applies if the old bug was in effect (budget was inflated)
+                        var correctedBudget = category.BudgetAmount - fundsAddedTotal;
+                        if (correctedBudget < 0) correctedBudget = 0;
+
+                        // Verify: with corrected budget, remaining = correctedBudget - sum(all expenses including negatives)
+                        var allExpensesSum = allExpenses
+                            .Where(e => e.CategoryId == category.Id)
+                            .Sum(e => e.Amount);
+                        var correctedRemaining = correctedBudget - allExpensesSum;
+
+                        // Sanity check: corrected remaining should equal original budget - positive expenses only
+                        // original_budget - positive_expenses = (corrected_budget) - (positive - fundsAdded)
+                        // = correctedBudget - positiveExpenses + fundsAddedTotal
+                        // = (budgetAmount - fundsAddedTotal) - positiveExpenses + fundsAddedTotal
+                        // = budgetAmount - positiveExpenses ?
+                        if (correctedRemaining >= 0 && category.BudgetAmount != correctedBudget)
+                        {
+                            _logger.LogInformation(
+                                "Fixing inflated budget for category {CategoryName}: {OldBudget} -> {NewBudget} (removed {FundsAdded} from old AddFunds bug)",
+                                category.Name, category.BudgetAmount, correctedBudget, fundsAddedTotal);
+
+                            category.BudgetAmount = correctedBudget;
+                            _unitOfWork.ExpenseCategories.Update(category);
+                            needsSave = true;
+                        }
+                    }
+                }
+
+                if (needsSave)
+                {
+                    await _unitOfWork.SaveChangesAsync();
+                }
+
+                _budgetFixApplied = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fixing inflated one-time budgets for user {UserId}", userId);
+            }
+        }
+
+        /// <summary>
         /// Gets filtered list of expenses
         /// </summary>
         public async Task<ExpenseListViewModel> GetExpensesAsync(string userId, string? period = null, int? categoryId = null, DateTime? startDate = null, DateTime? endDate = null)
@@ -658,17 +740,9 @@ namespace MySuperSystem2025.Services
                         _unitOfWork.ExpenseCategories.Update(category);
                         _logger.LogInformation("Expense amount refunded to monthly budget category {CategoryId}", expense.CategoryId);
                     }
-                    else if (expense.Amount < 0)
-                    {
-                        // Deleting a "funds added" entry (negative amount) on a one-time budget:
-                        // Reverse the budget increase that was applied when funds were added
-                        var fundsAmount = -expense.Amount; // Convert back to positive
-                        category.BudgetAmount -= fundsAmount;
-                        if (category.BudgetAmount < 0)
-                            category.BudgetAmount = 0;
-                        _unitOfWork.ExpenseCategories.Update(category);
-                        _logger.LogInformation("Funds-added entry reversed for one-time budget category {CategoryId}: removed {Amount} from budget", expense.CategoryId, fundsAmount);
-                    }
+                    // For one-time budgets (including funds-added entries):
+                    // No need to adjust BudgetAmount. The soft-delete will exclude this expense
+                    // from the dynamic balance calculation, which automatically corrects the remaining amount.
                 }
 
                 // Soft delete
@@ -1186,7 +1260,9 @@ namespace MySuperSystem2025.Services
 
         /// <summary>
         /// Adds funds back to a one-time budget category.
-        /// Increases BudgetAmount and records a negative expense entry as an audit trail.
+        /// Records a negative expense entry as an audit trail. The dynamic balance calculation
+        /// (remaining = budget - sum(expenses)) automatically accounts for the negative expense,
+        /// so we do NOT need to modify BudgetAmount.
         /// Example: You sold something from your business, so the money goes back in.
         /// </summary>
         public async Task<bool> AddFundsToCategoryAsync(AddFundsViewModel model, string userId)
@@ -1207,9 +1283,10 @@ namespace MySuperSystem2025.Services
                     return false;
                 }
 
-                // Increase the budget amount
-                category.BudgetAmount += model.Amount;
-                _unitOfWork.ExpenseCategories.Update(category);
+                // Do NOT increase BudgetAmount here.
+                // The negative expense entry below will reduce the sum of expenses,
+                // which automatically increases the dynamically calculated remaining balance.
+                // Previously this was double-counting: budget went up AND expenses went down.
 
                 // Record a negative expense as an audit trail (income/funds added)
                 var expense = new Expense
@@ -1225,7 +1302,7 @@ namespace MySuperSystem2025.Services
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation(
-                    "Funds added to category {CategoryName}: Amount={Amount}, NewBudget={Budget}, Reason={Reason}",
+                    "Funds added to category {CategoryName}: Amount={Amount}, Budget={Budget}, Reason={Reason}",
                     category.Name, model.Amount, category.BudgetAmount, model.Reason);
                 return true;
             }

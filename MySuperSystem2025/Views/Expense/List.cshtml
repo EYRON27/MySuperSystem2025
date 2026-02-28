@@ -229,11 +229,30 @@
                 <tbody>
                     @foreach (var expense in Model.Expenses)
                     {
+                        var isFundsAdded = expense.Amount < 0;
                         <tr>
-                            <td>@expense.Date.ToString("MMM dd, yyyy")</td>
+                            <td style="white-space: nowrap;">@expense.Date.ToString("MMM dd, yyyy")</td>
                             <td><span class="badge bg-secondary">@expense.CategoryName</span></td>
-                            <td>@expense.Reason</td>
-                            <td style="text-align: right; font-weight: 600;">&#8369;@expense.Amount.ToString("N2")</td>
+                            <td>
+                                @if (isFundsAdded)
+                                {
+                                    <span class="text-success"><i class="bi bi-plus-circle me-1"></i>@expense.Reason</span>
+                                }
+                                else
+                                {
+                                    @expense.Reason
+                                }
+                            </td>
+                            <td style="text-align: right; font-weight: 600; @(isFundsAdded ? "color: #16a34a;" : "")">
+                                @if (isFundsAdded)
+                                {
+                                    <span>+&#8369;@((-expense.Amount).ToString("N2"))</span>
+                                }
+                                else
+                                {
+                                    <span>&#8369;@expense.Amount.ToString("N2")</span>
+                                }
+                            </td>
                             <td style="text-align: center;">
                                 <a asp-action="Edit" asp-route-id="@expense.Id" class="btn btn-action btn-sm btn-outline-primary" title="Edit">
                                     <i class="bi bi-pencil"></i>
