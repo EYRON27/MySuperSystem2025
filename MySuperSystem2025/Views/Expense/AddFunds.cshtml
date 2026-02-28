@@ -1,0 +1,68 @@
+@model MySuperSystem2025.Models.ViewModels.Expense.AddFundsViewModel
+@{
+    ViewData["Title"] = "Add Funds";
+}
+
+<link rel="stylesheet" href="~/css/unified-forms.css" />
+
+<div class="form-container">
+    <div class="page-header">
+        <h1><i class="bi bi-plus-circle me-2"></i>Add Funds to @Model.CategoryName</h1>
+        <p class="text-muted mb-0">Add money back to this budget (e.g., from sales or income)</p>
+    </div>
+
+    <div class="form-card">
+        <div class="info-box" style="background: #f0fdf4; border: 1px solid #bbf7d0; margin-bottom: 1.5rem;">
+            <i class="bi bi-wallet2" style="color: #16a34a;"></i>
+            <div>
+                <small style="color: #15803d;">
+                    <strong>Current Budget:</strong> &#8369;@Model.CurrentBudget.ToString("N2") &nbsp;|&nbsp;
+                    <strong>Remaining:</strong> &#8369;@Model.CurrentRemaining.ToString("N2")
+                </small>
+            </div>
+        </div>
+
+        <form asp-action="AddFunds" method="post">
+            <input type="hidden" asp-for="CategoryId" />
+            <input type="hidden" asp-for="CategoryName" />
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Amount" class="form-label">Amount to Add (&#8369;)</label>
+                    <input asp-for="Amount" class="form-control" type="number" step="0.01" min="0.01" placeholder="0.00" />
+                    <span asp-validation-for="Amount" class="text-danger"></span>
+                    <small class="text-muted d-block mt-1">How much money are you adding back?</small>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Date" class="form-label">Date</label>
+                    <input asp-for="Date" class="form-control" type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    <span asp-validation-for="Date" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Reason" class="form-label">Reason / Description</label>
+                <textarea asp-for="Reason" class="form-control" rows="3" maxlength="255" placeholder="e.g., Sold 5 items on Shopee, Customer payment received..."></textarea>
+                <span asp-validation-for="Reason" class="text-danger"></span>
+                <small class="text-muted d-block mt-1">Describe where this money came from</small>
+            </div>
+
+            <div class="info-box">
+                <i class="bi bi-info-circle"></i>
+                <small>This will <strong>increase your budget</strong> by the specified amount. A record will be logged so you can track where the money came from.</small>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary" style="background: #16a34a; border-color: #16a34a;">
+                    <i class="bi bi-plus-circle me-1"></i>Add Funds
+                </button>
+                <a asp-action="Categories" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

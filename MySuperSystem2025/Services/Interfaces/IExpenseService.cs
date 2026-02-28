@@ -41,5 +41,10 @@ namespace MySuperSystem2025.Services.Interfaces
         /// Gets per-category monthly savings breakdown for all past months
         /// </summary>
         Task<MonthlySavingsViewModel> GetMonthlySavingsAsync(string userId);
+
+        /// <summary>
+        /// Adds funds back to a one-time budget category (e.g., business income/sales)
+        /// </summary>
+        Task<bool> AddFundsToCategoryAsync(AddFundsViewModel model, string userId);
     }
 }

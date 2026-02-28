@@ -648,13 +648,27 @@ namespace MySuperSystem2025.Services
                 var expense = await _unitOfWork.Expenses.GetExpenseWithCategoryAsync(id, userId);
                 if (expense == null) return false;
 
-                // Refund the amount only for MONTHLY budget categories
                 var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(expense.CategoryId, userId);
-                if (category != null && category.MonthlyFixedBudget > 0)
+                if (category != null)
                 {
-                    category.RemainingAmount += expense.Amount;
-                    _unitOfWork.ExpenseCategories.Update(category);
-                    _logger.LogInformation("Expense amount refunded to monthly budget category {CategoryId}", expense.CategoryId);
+                    if (category.MonthlyFixedBudget > 0)
+                    {
+                        // Refund the amount for MONTHLY budget categories
+                        category.RemainingAmount += expense.Amount;
+                        _unitOfWork.ExpenseCategories.Update(category);
+                        _logger.LogInformation("Expense amount refunded to monthly budget category {CategoryId}", expense.CategoryId);
+                    }
+                    else if (expense.Amount < 0)
+                    {
+                        // Deleting a "funds added" entry (negative amount) on a one-time budget:
+                        // Reverse the budget increase that was applied when funds were added
+                        var fundsAmount = -expense.Amount; // Convert back to positive
+                        category.BudgetAmount -= fundsAmount;
+                        if (category.BudgetAmount < 0)
+                            category.BudgetAmount = 0;
+                        _unitOfWork.ExpenseCategories.Update(category);
+                        _logger.LogInformation("Funds-added entry reversed for one-time budget category {CategoryId}: removed {Amount} from budget", expense.CategoryId, fundsAmount);
+                    }
                 }
 
                 // Soft delete
@@ -1168,6 +1182,58 @@ namespace MySuperSystem2025.Services
                 Categories = categoryTotals.Values.OrderByDescending(c => c.TotalSaved).ToList(),
                 MonthlyBreakdown = monthlyBreakdown
             };
+        }
+
+        /// <summary>
+        /// Adds funds back to a one-time budget category.
+        /// Increases BudgetAmount and records a negative expense entry as an audit trail.
+        /// Example: You sold something from your business, so the money goes back in.
+        /// </summary>
+        public async Task<bool> AddFundsToCategoryAsync(AddFundsViewModel model, string userId)
+        {
+            try
+            {
+                var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(model.CategoryId, userId);
+                if (category == null)
+                {
+                    _logger.LogWarning("Category {CategoryId} not found for adding funds", model.CategoryId);
+                    return false;
+                }
+
+                // Only allow adding funds to one-time budget categories (not monthly)
+                if (category.MonthlyFixedBudget > 0)
+                {
+                    _logger.LogWarning("Cannot add funds to monthly budget category {CategoryId}", model.CategoryId);
+                    return false;
+                }
+
+                // Increase the budget amount
+                category.BudgetAmount += model.Amount;
+                _unitOfWork.ExpenseCategories.Update(category);
+
+                // Record a negative expense as an audit trail (income/funds added)
+                var expense = new Expense
+                {
+                    Amount = -model.Amount,
+                    Date = model.Date,
+                    Reason = $"[FUNDS ADDED] {model.Reason}",
+                    CategoryId = model.CategoryId,
+                    UserId = userId
+                };
+
+                await _unitOfWork.Expenses.AddAsync(expense);
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation(
+                    "Funds added to category {CategoryName}: Amount={Amount}, NewBudget={Budget}, Reason={Reason}",
+                    category.Name, model.Amount, category.BudgetAmount, model.Reason);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding funds to category {CategoryId} for user {UserId}", model.CategoryId, userId);
+                return false;
+            }
         }
 
         private static ExpenseListItemViewModel MapToListItem(Expense expense)

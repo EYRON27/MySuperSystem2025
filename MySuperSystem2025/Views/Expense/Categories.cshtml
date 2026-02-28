@@ -242,6 +242,12 @@
                                 @category.ExpenseCount @(category.ExpenseCount == 1 ? "expense" : "expenses")
                             </span>
                             <div class="action-buttons">
+                                @if (!category.HasMonthlyBudget && category.BudgetAmount > 0)
+                                {
+                                    <a asp-action="AddFunds" asp-route-id="@category.Id" class="btn btn-sm btn-outline-success btn-action" title="Add Funds">
+                                        <i class="bi bi-plus-circle"></i>
+                                    </a>
+                                }
                                 <a asp-action="EditCategory" asp-route-id="@category.Id" class="btn btn-sm btn-outline-primary btn-action" title="Edit">
                                     <i class="bi bi-pencil"></i>
                                 </a>

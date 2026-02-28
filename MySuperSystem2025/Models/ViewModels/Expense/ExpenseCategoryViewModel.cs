@@ -113,5 +113,31 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         /// </summary>
         public decimal TotalExpenses { get; set; }
     }
+
+    /// <summary>
+    /// View model for adding funds back to a one-time budget category
+    /// </summary>
+    public class AddFundsViewModel
+    {
+        public int CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal CurrentBudget { get; set; }
+        public decimal CurrentRemaining { get; set; }
+
+        [Required(ErrorMessage = "Amount is required")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
+        [DataType(DataType.Currency)]
+        [Display(Name = "Amount to Add (?)")]
+        public decimal Amount { get; set; }
+
+        [Required(ErrorMessage = "Reason is required")]
+        [StringLength(255, ErrorMessage = "Reason cannot exceed 255 characters")]
+        [Display(Name = "Reason / Description")]
+        public string Reason { get; set; } = string.Empty;
+
+        [DataType(DataType.Date)]
+        [Display(Name = "Date")]
+        public DateTime Date { get; set; } = DateTime.Today;
+    }
 }
 

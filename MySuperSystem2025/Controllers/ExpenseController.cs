@@ -319,5 +319,67 @@ namespace MySuperSystem2025.Controllers
             var model = await _expenseService.GetMonthlySavingsAsync(UserId);
             return View(model);
         }
+
+        // GET: /Expense/AddFunds/5
+        [HttpGet]
+        public async Task<IActionResult> AddFunds(int id)
+        {
+            var category = await _expenseService.GetCategoryForEditAsync(id, UserId);
+            if (category == null)
+            {
+                return NotFound();
+            }
+
+            // Only allow for one-time budget categories
+            if (category.MonthlyFixedBudget > 0)
+            {
+                TempData["Error"] = "Cannot add funds to a monthly budget category.";
+                return RedirectToAction(nameof(Categories));
+            }
+
+            var model = new AddFundsViewModel
+            {
+                CategoryId = category.Id,
+                CategoryName = category.Name,
+                CurrentBudget = category.BudgetAmount,
+                CurrentRemaining = category.RemainingAmount,
+                Date = DateTime.Today
+            };
+
+            return View(model);
+        }
+
+        // POST: /Expense/AddFunds
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddFunds(AddFundsViewModel model)
+        {
+            if (model.Date.Date > DateTime.Today)
+            {
+                ModelState.AddModelError("Date", "Date cannot be in the future.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                var category = await _expenseService.GetCategoryForEditAsync(model.CategoryId, UserId);
+                if (category != null)
+                {
+                    model.CategoryName = category.Name;
+                    model.CurrentBudget = category.BudgetAmount;
+                    model.CurrentRemaining = category.RemainingAmount;
+                }
+                return View(model);
+            }
+
+            var result = await _expenseService.AddFundsToCategoryAsync(model, UserId);
+            if (result)
+            {
+                TempData["Success"] = $"?{model.Amount:N2} added to {model.CategoryName} successfully.";
+                return RedirectToAction(nameof(Categories));
+            }
+
+            TempData["Error"] = "Failed to add funds.";
+            return View(model);
+        }
     }
 }
