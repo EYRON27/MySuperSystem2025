@@ -52,6 +52,12 @@ namespace MySuperSystem2025.Models.Domain
         public bool IsBudgetActive { get; set; } = true;
 
         /// <summary>
+        /// When true, unspent budget from the previous month rolls over into the next month.
+        /// Default is false so historical data from incomplete months doesn't affect budgets.
+        /// </summary>
+        public bool RolloverEnabled { get; set; } = false;
+
+        /// <summary>
         /// Year of last budget reset (for tracking monthly resets)
         /// </summary>
         public int? LastResetYear { get; set; }

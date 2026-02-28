@@ -140,7 +140,7 @@ namespace MySuperSystem2025.Services
             foreach (var cat in activeMonthlyCats)
             {
                 decimal rollover = 0;
-                if (prevFilterMonthStart >= BudgetStartDate)
+                if (cat.RolloverEnabled && prevFilterMonthStart >= BudgetStartDate)
                 {
                     var prevEnd = prevFilterMonthStart.AddMonths(1).AddDays(-1);
                     var prevSpent = expensesList
@@ -275,19 +275,22 @@ namespace MySuperSystem2025.Services
                 
                 if (c.MonthlyFixedBudget > 0)
                 {
-                    // Calculate rollover from previous month
+                    // Calculate rollover from previous month (only if enabled)
                     decimal rollover = 0;
-                    var prevMonthStart = startOfMonth.AddMonths(-1);
-                    if (prevMonthStart >= BudgetStartDate)
+                    if (c.RolloverEnabled)
                     {
-                        var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
-                        var prevSpent = allExpenses
-                            .Where(e => e.CategoryId == c.Id && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
-                            .Sum(e => e.Amount);
-                        var prevLeftover = c.MonthlyFixedBudget - prevSpent;
-                        if (prevLeftover > 0)
+                        var prevMonthStart = startOfMonth.AddMonths(-1);
+                        if (prevMonthStart >= BudgetStartDate)
                         {
-                            rollover = prevLeftover;
+                            var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
+                            var prevSpent = allExpenses
+                                .Where(e => e.CategoryId == c.Id && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
+                                .Sum(e => e.Amount);
+                            var prevLeftover = c.MonthlyFixedBudget - prevSpent;
+                            if (prevLeftover > 0)
+                            {
+                                rollover = prevLeftover;
+                            }
                         }
                     }
 
@@ -339,9 +342,9 @@ namespace MySuperSystem2025.Services
                     // Check if needs reset (different year or month)
                     if (category.LastResetYear != now.Year || category.LastResetMonth != now.Month)
                     {
-                        // Calculate leftover from the PREVIOUS month to roll over
+                        // Calculate leftover from the PREVIOUS month to roll over (only if rollover is enabled)
                         decimal rollover = 0;
-                        if (category.LastResetYear.HasValue && category.LastResetMonth.HasValue)
+                        if (category.RolloverEnabled && category.LastResetYear.HasValue && category.LastResetMonth.HasValue)
                         {
                             var prevMonthStart = new DateTime(category.LastResetYear.Value, category.LastResetMonth.Value, 1);
                             var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
@@ -690,19 +693,22 @@ namespace MySuperSystem2025.Services
                 
                 if (c.MonthlyFixedBudget > 0)
                 {
-                    // Calculate rollover from previous month
+                    // Calculate rollover from previous month (only if enabled)
                     decimal rollover = 0;
-                    var prevMonthStart = startOfMonth.AddMonths(-1);
-                    if (prevMonthStart >= BudgetStartDate)
+                    if (c.RolloverEnabled)
                     {
-                        var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
-                        var prevSpent = allExpenses
-                            .Where(e => e.CategoryId == c.Id && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
-                            .Sum(e => e.Amount);
-                        var prevLeftover = c.MonthlyFixedBudget - prevSpent;
-                        if (prevLeftover > 0)
+                        var prevMonthStart = startOfMonth.AddMonths(-1);
+                        if (prevMonthStart >= BudgetStartDate)
                         {
-                            rollover = prevLeftover;
+                            var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
+                            var prevSpent = allExpenses
+                                .Where(e => e.CategoryId == c.Id && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
+                                .Sum(e => e.Amount);
+                            var prevLeftover = c.MonthlyFixedBudget - prevSpent;
+                            if (prevLeftover > 0)
+                            {
+                                rollover = prevLeftover;
+                            }
                         }
                     }
 
@@ -759,18 +765,21 @@ namespace MySuperSystem2025.Services
             
             if (category.MonthlyFixedBudget > 0)
             {
-                // Calculate rollover from previous month
+                // Calculate rollover from previous month (only if enabled)
                 decimal rollover = 0;
-                var prevMonthStart = startOfMonth.AddMonths(-1);
-                if (prevMonthStart >= BudgetStartDate)
+                if (category.RolloverEnabled)
                 {
-                    var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
-                    var prevSpent = category.Expenses
-                        .Where(e => !e.IsDeleted && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
-                        .Sum(e => e.Amount);
-                    var prevLeftover = category.MonthlyFixedBudget - prevSpent;
-                    if (prevLeftover > 0)
-                        rollover = prevLeftover;
+                    var prevMonthStart = startOfMonth.AddMonths(-1);
+                    if (prevMonthStart >= BudgetStartDate)
+                    {
+                        var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
+                        var prevSpent = category.Expenses
+                            .Where(e => !e.IsDeleted && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
+                            .Sum(e => e.Amount);
+                        var prevLeftover = category.MonthlyFixedBudget - prevSpent;
+                        if (prevLeftover > 0)
+                            rollover = prevLeftover;
+                    }
                 }
 
                 budget = category.MonthlyFixedBudget + rollover;
@@ -799,7 +808,8 @@ namespace MySuperSystem2025.Services
                 RemainingAmount = remaining > 0 ? remaining : 0,
                 TotalExpenses = totalExpenses,
                 MonthlyFixedBudget = category.MonthlyFixedBudget,
-                IsBudgetActive = category.IsBudgetActive
+                IsBudgetActive = category.IsBudgetActive,
+                RolloverEnabled = category.RolloverEnabled
             };
         }
 
@@ -821,18 +831,21 @@ namespace MySuperSystem2025.Services
             
             if (category.MonthlyFixedBudget > 0)
             {
-                // Calculate rollover from previous month
+                // Calculate rollover from previous month (only if enabled)
                 decimal rollover = 0;
-                var prevMonthStart = startOfMonth.AddMonths(-1);
-                if (prevMonthStart >= BudgetStartDate)
+                if (category.RolloverEnabled)
                 {
-                    var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
-                    var prevSpent = category.Expenses
-                        .Where(e => !e.IsDeleted && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
-                        .Sum(e => e.Amount);
-                    var prevLeftover = category.MonthlyFixedBudget - prevSpent;
-                    if (prevLeftover > 0)
-                        rollover = prevLeftover;
+                    var prevMonthStart = startOfMonth.AddMonths(-1);
+                    if (prevMonthStart >= BudgetStartDate)
+                    {
+                        var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
+                        var prevSpent = category.Expenses
+                            .Where(e => !e.IsDeleted && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
+                            .Sum(e => e.Amount);
+                        var prevLeftover = category.MonthlyFixedBudget - prevSpent;
+                        if (prevLeftover > 0)
+                            rollover = prevLeftover;
+                    }
                 }
 
                 budget = category.MonthlyFixedBudget + rollover;
@@ -892,6 +905,7 @@ namespace MySuperSystem2025.Services
                     RemainingAmount = budgetAmount,
                     MonthlyFixedBudget = model.MonthlyFixedBudget,
                     IsBudgetActive = model.IsBudgetActive,
+                    RolloverEnabled = model.RolloverEnabled,
                     LastResetYear = model.MonthlyFixedBudget > 0 ? now.Year : null,
                     LastResetMonth = model.MonthlyFixedBudget > 0 ? now.Month : null
                 };
@@ -934,6 +948,7 @@ namespace MySuperSystem2025.Services
                 category.Description = model.Description;
                 category.MonthlyFixedBudget = model.MonthlyFixedBudget;
                 category.IsBudgetActive = model.IsBudgetActive;
+                category.RolloverEnabled = model.RolloverEnabled;
 
                 // Determine budget amount
                 var newBudget = model.MonthlyFixedBudget > 0 ? model.MonthlyFixedBudget : model.BudgetAmount;

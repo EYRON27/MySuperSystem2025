@@ -87,6 +87,12 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         /// </summary>
         [Display(Name = "Budget Active")]
         public bool IsBudgetActive { get; set; } = true;
+
+        /// <summary>
+        /// Whether unspent budget rolls over to the next month.
+        /// </summary>
+        [Display(Name = "Rollover Savings")]
+        public bool RolloverEnabled { get; set; } = false;
     }
 
     /// <summary>

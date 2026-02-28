@@ -70,6 +70,25 @@
                         }
                     </small>
                 </div>
+
+                <div class="mb-3">
+                    <div class="form-check form-switch">
+                        <input asp-for="RolloverEnabled" class="form-check-input" type="checkbox" role="switch" id="rolloverSwitch" />
+                        <label class="form-check-label" for="rolloverSwitch">
+                            <span class="fw-bold">Rollover Unspent Budget</span>
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-1">
+                        @if (Model.RolloverEnabled)
+                        {
+                            <span class="text-success"><i class="bi bi-arrow-repeat me-1"></i>Enabled — leftover from last month is added to next month's budget</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted"><i class="bi bi-x-circle me-1"></i>Disabled — each month starts fresh with the fixed budget only</span>
+                        }
+                    </small>
+                </div>
             }
 
             @if (Model.TotalExpenses > 0)
