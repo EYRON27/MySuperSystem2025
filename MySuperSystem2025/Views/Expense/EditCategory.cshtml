@@ -22,7 +22,8 @@
 
         <form asp-action="EditCategory" method="post">
             <input type="hidden" asp-for="Id" />
-            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            <input type="hidden" asp-for="IsDefault" />
+            <div asp-validation-summary="All" class="alert alert-danger"></div>
 
             <div class="mb-3">
                 <label asp-for="Name" class="form-label">Category Name</label>
@@ -89,6 +90,12 @@
                         }
                     </small>
                 </div>
+            }
+            else
+            {
+                <!-- For one-time budgets, preserve the default values -->
+                <input type="hidden" asp-for="IsBudgetActive" />
+                <input type="hidden" asp-for="RolloverEnabled" />
             }
 
             @if (Model.TotalExpenses > 0)

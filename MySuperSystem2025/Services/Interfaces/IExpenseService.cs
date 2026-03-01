@@ -46,5 +46,10 @@ namespace MySuperSystem2025.Services.Interfaces
         /// Adds funds back to a one-time budget category (e.g., business income/sales)
         /// </summary>
         Task<bool> AddFundsToCategoryAsync(AddFundsViewModel model, string userId);
+
+        /// <summary>
+        /// Updates an existing funds-added entry, preserving its negative amount nature
+        /// </summary>
+        Task<bool> UpdateFundsEntryAsync(EditFundsViewModel model, string userId);
     }
 }

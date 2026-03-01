@@ -1,4 +1,4 @@
-using System.Security.Claims;
+﻿using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -103,6 +103,12 @@ namespace MySuperSystem2025.Controllers
             if (expense == null)
             {
                 return NotFound();
+            }
+
+            // If this is a funds-added entry, redirect to the EditFunds action
+            if (expense.Amount < 0)
+            {
+                return RedirectToAction(nameof(EditFunds), new { id });
             }
 
             var categories = await _expenseService.GetCategoriesAsync(UserId);
@@ -374,11 +380,73 @@ namespace MySuperSystem2025.Controllers
             var result = await _expenseService.AddFundsToCategoryAsync(model, UserId);
             if (result)
             {
-                TempData["Success"] = $"?{model.Amount:N2} added to {model.CategoryName} successfully.";
+                TempData["Success"] = $"₱{model.Amount:N2} added to {model.CategoryName} successfully.";
                 return RedirectToAction(nameof(Categories));
             }
 
             TempData["Error"] = "Failed to add funds.";
+            return View(model);
+        }
+
+        // GET: /Expense/EditFunds/5
+        [HttpGet]
+        public async Task<IActionResult> EditFunds(int id)
+        {
+            var expense = await _expenseService.GetExpenseForEditAsync(id, UserId);
+            if (expense == null)
+            {
+                return NotFound();
+            }
+
+            // Only allow editing funds-added entries (negative amounts)
+            if (expense.Amount >= 0)
+            {
+                return RedirectToAction(nameof(Edit), new { id });
+            }
+
+            var category = await _expenseService.GetCategoryForEditAsync(expense.CategoryId, UserId);
+
+            var model = new EditFundsViewModel
+            {
+                Id = expense.Id,
+                Amount = -expense.Amount, // Show as positive for the user
+                Date = expense.Date,
+                Reason = expense.Reason.Replace("[FUNDS ADDED] ", ""),
+                CategoryId = expense.CategoryId,
+                CategoryName = category?.Name ?? "Unknown"
+            };
+
+            return View(model);
+        }
+
+        // POST: /Expense/EditFunds/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditFunds(int id, EditFundsViewModel model)
+        {
+            if (id != model.Id)
+            {
+                return BadRequest();
+            }
+
+            if (model.Date.Date > DateTime.Today)
+            {
+                ModelState.AddModelError("Date", "Date cannot be in the future.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            var result = await _expenseService.UpdateFundsEntryAsync(model, UserId);
+            if (result)
+            {
+                TempData["Success"] = "Funds entry updated successfully.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            TempData["Error"] = "Failed to update funds entry.";
             return View(model);
         }
     }

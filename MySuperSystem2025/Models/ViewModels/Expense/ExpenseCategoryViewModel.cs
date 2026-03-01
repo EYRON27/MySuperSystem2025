@@ -66,7 +66,7 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
     {
         [Required(ErrorMessage = "Category name is required")]
         [StringLength(50, ErrorMessage = "Category name cannot exceed 50 characters")]
-        [RegularExpression(@"^[a-zA-Z0-9\s]+$", ErrorMessage = "Category name can only contain letters, numbers, and spaces")]
+        [RegularExpression(@"^[a-zA-Z0-9\s\-\.\,\'\(\)\&]+$", ErrorMessage = "Category name can only contain letters, numbers, spaces, and common punctuation (- . , ' ( ) &)")]
         [Display(Name = "Category Name")]
         public string Name { get; set; } = string.Empty;
 
@@ -135,6 +135,32 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         [Display(Name = "Reason / Description")]
         public string Reason { get; set; } = string.Empty;
 
+        [DataType(DataType.Date)]
+        [Display(Name = "Date")]
+        public DateTime Date { get; set; } = DateTime.Today;
+    }
+
+    /// <summary>
+    /// View model for editing an existing funds-added entry
+    /// /// </summary>
+    public class EditFundsViewModel
+    {
+        public int Id { get; set; }
+        public int CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Amount is required")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Amount must be greater than 0")]
+        [DataType(DataType.Currency)]
+        [Display(Name = "Amount (?)")]
+        public decimal Amount { get; set; }
+
+        [Required(ErrorMessage = "Reason is required")]
+        [StringLength(255, ErrorMessage = "Reason cannot exceed 255 characters")]
+        [Display(Name = "Reason / Description")]
+        public string Reason { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Date is required")]
         [DataType(DataType.Date)]
         [Display(Name = "Date")]
         public DateTime Date { get; set; } = DateTime.Today;

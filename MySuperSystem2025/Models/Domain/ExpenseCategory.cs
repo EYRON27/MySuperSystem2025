@@ -13,7 +13,7 @@ namespace MySuperSystem2025.Models.Domain
     {
         [Required(ErrorMessage = "Category name is required")]
         [StringLength(50, ErrorMessage = "Category name cannot exceed 50 characters")]
-        [RegularExpression(@"^[a-zA-Z0-9\s]+$", ErrorMessage = "Category name can only contain letters, numbers, and spaces")]
+        [RegularExpression(@"^[a-zA-Z0-9\s\-\.\,\'\(\)\&]+$", ErrorMessage = "Category name can only contain letters, numbers, spaces, and common punctuation (- . , ' ( ) &)")]
         public string Name { get; set; } = string.Empty;
 
         [StringLength(200)]

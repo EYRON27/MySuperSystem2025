@@ -1,4 +1,4 @@
-using MySuperSystem2025.Models.Domain;
+﻿using MySuperSystem2025.Models.Domain;
 using MySuperSystem2025.Models.ViewModels.Expense;
 using MySuperSystem2025.Repositories.Interfaces;
 using MySuperSystem2025.Services.Interfaces;
@@ -25,15 +25,47 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
+        /// Recalculates and persists RemainingAmount for a one-time budget category.
+        /// Formula: RemainingAmount = BudgetAmount - sum(all non-deleted positive expenses)
+        /// Call this after ANY change to expenses in a one-time budget category.
+        /// </summary>
+        private void RecalcOneTimeBudget(ExpenseCategory category)
+        {
+            if (category.MonthlyFixedBudget > 0) return; // not a one-time budget
+            if (category.BudgetAmount <= 0) return; // no budget set
+
+            var totalSpent = category.Expenses
+                .Where(e => !e.IsDeleted && e.Amount > 0)
+                .Sum(e => e.Amount);
+
+            category.RemainingAmount = category.BudgetAmount - totalSpent;
+            if (category.RemainingAmount < 0)
+                category.RemainingAmount = 0;
+
+            _unitOfWork.ExpenseCategories.Update(category);
+        }
+
+        /// <summary>
+        /// Gets the dynamically-calculated remaining balance for a one-time budget category.
+        /// Does NOT touch the database.
+        /// </summary>
+        private static decimal CalcOneTimeRemaining(ExpenseCategory category)
+        {
+            if (category.BudgetAmount <= 0) return 0;
+            var totalSpent = category.Expenses
+                .Where(e => !e.IsDeleted && e.Amount > 0)
+                .Sum(e => e.Amount);
+            var remaining = category.BudgetAmount - totalSpent;
+            return remaining > 0 ? remaining : 0;
+        }
+
+        /// <summary>
         /// Gets dashboard data with expense summaries and balance tracking
         /// </summary>
         public async Task<ExpenseDashboardViewModel> GetDashboardAsync(string userId, string? breakdownPeriod = null, string? selectedMonth = null)
         {
             // First, check and apply monthly budget reset if needed
             await ResetMonthlyBudgetsIfNeededAsync(userId);
-
-            // Fix one-time budget categories that were inflated by the old AddFunds bug
-            await FixInflatedOneTimeBudgetsAsync(userId);
 
             var today = DateTime.Today;
             var startOfWeek = today.AddDays(-(int)today.DayOfWeek);
@@ -61,21 +93,23 @@ namespace MySuperSystem2025.Services
             var categories = await _unitOfWork.ExpenseCategories.GetUserCategoriesAsync(userId);
             var categoriesList = categories.ToList();
 
-            var todayExpenses = expensesList.Where(e => e.Date.Date == today).ToList();
-            var weeklyExpenses = expensesList.Where(e => e.Date >= startOfWeek && e.Date <= today).ToList();
-            var monthlyExpenses = expensesList.Where(e => e.Date >= startOfMonth && e.Date <= today).ToList();
-            var yearlyExpenses = expensesList.Where(e => e.Date >= startOfYear && e.Date <= today).ToList();
+            // Filter out funds-added entries (negative amounts) for spending totals
+            var actualExpenses = expensesList.Where(e => e.Amount > 0).ToList();
 
-            // Expenses for the selected/filter month
-            var selectedMonthExpenses = expensesList.Where(e => e.Date >= filterStartDate && e.Date <= filterEndDate).ToList();
+            var todayExpenses = actualExpenses.Where(e => e.Date.Date == today).ToList();
+            var weeklyExpenses = actualExpenses.Where(e => e.Date >= startOfWeek && e.Date <= today).ToList();
+            var monthlyExpenses = actualExpenses.Where(e => e.Date >= startOfMonth && e.Date <= today).ToList();
+            var yearlyExpenses = actualExpenses.Where(e => e.Date >= startOfYear && e.Date <= today).ToList();
 
-            // Category breakdown based on selected period OR selected month
+            // Expenses for the selected/filter month (only actual expenses, not funds-added)
+            var selectedMonthExpenses = actualExpenses.Where(e => e.Date >= filterStartDate && e.Date <= filterEndDate).ToList();
+
+            // Category breakdown based on selected period OR selected month (only actual expenses)
             List<Expense> breakdownExpenses;
             string breakdownPeriodName;
             
             if (!string.IsNullOrEmpty(selectedMonth))
             {
-                // Use selected month for breakdown
                 breakdownExpenses = selectedMonthExpenses;
                 breakdownPeriodName = new DateTime(filterYear, filterMonth, 1).ToString("MMMM yyyy");
             }
@@ -96,7 +130,7 @@ namespace MySuperSystem2025.Services
                         breakdownPeriodName = "This Year";
                         break;
                     case "alltime":
-                        breakdownExpenses = expensesList;
+                        breakdownExpenses = actualExpenses;
                         breakdownPeriodName = "All Time";
                         break;
                     case "monthly":
@@ -133,7 +167,7 @@ namespace MySuperSystem2025.Services
             // Generate available months (from December 2025 to current)
             var availableMonths = GenerateAvailableMonths(selectedMonth);
 
-            // Calculate totals for selected month � only ACTIVE monthly budget categories
+            // Calculate totals for selected month — only ACTIVE monthly budget categories
             // Include rollover from previous month in the budget total
             var selectedMonthTotal = selectedMonthExpenses.Sum(e => e.Amount);
             
@@ -146,7 +180,7 @@ namespace MySuperSystem2025.Services
                 if (cat.RolloverEnabled && prevFilterMonthStart >= BudgetStartDate)
                 {
                     var prevEnd = prevFilterMonthStart.AddMonths(1).AddDays(-1);
-                    var prevSpent = expensesList
+                    var prevSpent = actualExpenses
                         .Where(e => e.CategoryId == cat.Id && e.Date >= prevFilterMonthStart && e.Date <= prevEnd)
                         .Sum(e => e.Amount);
                     var leftover = cat.MonthlyFixedBudget - prevSpent;
@@ -155,7 +189,7 @@ namespace MySuperSystem2025.Services
                 totalMonthlyFixedBudget += cat.MonthlyFixedBudget + rollover;
             }
             
-            // FIX: Only count expenses from ACTIVE MONTHLY budget categories for the remaining calculation
+            // Only count expenses from ACTIVE MONTHLY budget categories for the remaining calculation
             var monthlyCategoryIds = activeMonthlyCats
                 .Select(c => c.Id)
                 .ToHashSet();
@@ -165,14 +199,11 @@ namespace MySuperSystem2025.Services
             var selectedMonthRemaining = totalMonthlyFixedBudget - monthlyBudgetSpentThisMonth;
 
             // Calculate accumulated savings from PAST months (monthly budget categories only)
-            // Savings = for each past completed month, SUM of (MonthlyFixedBudget - SpentThatMonth) per category
-            // Overspent months are clamped to 0 (don't reduce savings)
             var monthlyCategoriesList = categoriesList.Where(c => c.MonthlyFixedBudget > 0 && c.IsBudgetActive).ToList();
             decimal totalMonthlySavings = 0;
 
             if (monthlyCategoriesList.Any())
             {
-                // Iterate from BudgetStartDate to the month BEFORE the selected/filter month
                 var savingsDate = BudgetStartDate;
                 var selectedMonthStart = new DateTime(filterYear, filterMonth, 1);
 
@@ -183,7 +214,7 @@ namespace MySuperSystem2025.Services
 
                     foreach (var cat in monthlyCategoriesList)
                     {
-                        var spentInMonth = expensesList
+                        var spentInMonth = actualExpenses
                             .Where(e => e.CategoryId == cat.Id && e.Date >= monthStart && e.Date <= monthEnd)
                             .Sum(e => e.Amount);
 
@@ -210,7 +241,7 @@ namespace MySuperSystem2025.Services
                 YearlyCount = yearlyExpenses.Count,
                 TotalBudget = categoriesList.Sum(c => c.BudgetAmount),
                 TotalRemainingBalance = categoriesList.Sum(c => c.RemainingAmount),
-                TotalExpenses = expensesList.Sum(e => e.Amount),
+                TotalExpenses = actualExpenses.Sum(e => e.Amount),
                 RecentExpenses = expensesList.Take(10).Select(MapToListItem).ToList(),
                 CategoryBreakdown = categoryBreakdown,
                 CategoryBalances = categoryBalances,
@@ -256,20 +287,21 @@ namespace MySuperSystem2025.Services
         /// <summary>
         /// Gets category balances for a specific month.
         /// For monthly budgets: includes rollover from the previous month.
+        /// For one-time budgets: dynamically calculates remaining from stored BudgetAmount.
+        /// This method is READ-ONLY — it does NOT modify database values.
         /// </summary>
         public async Task<List<CategoryBalanceViewModel>> GetCategoryBalancesForMonthAsync(string userId, int year, int month)
         {
-            var categories = await _unitOfWork.ExpenseCategories.GetUserCategoriesAsync(userId);
-            var allExpenses = await _unitOfWork.Expenses.GetUserExpensesAsync(userId);
+            var categories = (await _unitOfWork.ExpenseCategories.GetUserCategoriesAsync(userId)).ToList();
+            var allExpenses = (await _unitOfWork.Expenses.GetUserExpensesAsync(userId)).ToList();
             
             var startOfMonth = new DateTime(year, month, 1);
             var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
 
             return categories.Select(c =>
             {
-                // Always calculate spent this month (for display)
                 var spentThisMonth = allExpenses
-                    .Where(e => e.CategoryId == c.Id && e.Date >= startOfMonth && e.Date <= endOfMonth)
+                    .Where(e => e.CategoryId == c.Id && e.Amount > 0 && e.Date >= startOfMonth && e.Date <= endOfMonth)
                     .Sum(e => e.Amount);
                 
                 decimal budget;
@@ -278,7 +310,6 @@ namespace MySuperSystem2025.Services
                 
                 if (c.MonthlyFixedBudget > 0)
                 {
-                    // Calculate rollover from previous month (only if enabled)
                     decimal rollover = 0;
                     if (c.RolloverEnabled)
                     {
@@ -287,13 +318,11 @@ namespace MySuperSystem2025.Services
                         {
                             var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
                             var prevSpent = allExpenses
-                                .Where(e => e.CategoryId == c.Id && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
+                                .Where(e => e.CategoryId == c.Id && e.Amount > 0 && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
                                 .Sum(e => e.Amount);
                             var prevLeftover = c.MonthlyFixedBudget - prevSpent;
                             if (prevLeftover > 0)
-                            {
                                 rollover = prevLeftover;
-                            }
                         }
                     }
 
@@ -303,10 +332,11 @@ namespace MySuperSystem2025.Services
                 }
                 else
                 {
-                    // One-time/manual budget: calculate remaining from ALL expenses (not filtered by date)
+                    // One-time budget: use stored BudgetAmount as-is (set by user via EditCategory/AddFunds)
+                    // Dynamically calculate remaining = BudgetAmount - all positive expenses
                     budget = c.BudgetAmount;
                     totalExpensesForBudget = allExpenses
-                        .Where(e => e.CategoryId == c.Id)
+                        .Where(e => e.CategoryId == c.Id && e.Amount > 0)
                         .Sum(e => e.Amount);
                     remaining = budget - totalExpensesForBudget;
                 }
@@ -327,7 +357,6 @@ namespace MySuperSystem2025.Services
 
         /// <summary>
         /// Checks and applies monthly budget reset for all user categories.
-        /// Savings from the previous month roll over into the new month's budget.
         /// </summary>
         public async Task ResetMonthlyBudgetsIfNeededAsync(string userId)
         {
@@ -339,44 +368,35 @@ namespace MySuperSystem2025.Services
 
                 foreach (var category in categories)
                 {
-                    // Only reset categories with monthly fixed budget that are ACTIVE
                     if (category.MonthlyFixedBudget <= 0 || !category.IsBudgetActive) continue;
 
-                    // Check if needs reset (different year or month)
                     if (category.LastResetYear != now.Year || category.LastResetMonth != now.Month)
                     {
-                        // Calculate leftover from the PREVIOUS month to roll over (only if rollover is enabled)
                         decimal rollover = 0;
                         if (category.RolloverEnabled && category.LastResetYear.HasValue && category.LastResetMonth.HasValue)
                         {
                             var prevMonthStart = new DateTime(category.LastResetYear.Value, category.LastResetMonth.Value, 1);
                             var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
                             var prevMonthExpenses = category.Expenses
-                                .Where(e => !e.IsDeleted && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
+                                .Where(e => !e.IsDeleted && e.Amount > 0 && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
                                 .Sum(e => e.Amount);
                             var prevLeftover = category.MonthlyFixedBudget - prevMonthExpenses;
                             if (prevLeftover > 0)
-                            {
                                 rollover = prevLeftover;
-                            }
                         }
 
-                        // Calculate expenses for current month
                         var startOfMonth = new DateTime(now.Year, now.Month, 1);
                         var currentMonthExpenses = category.Expenses
-                            .Where(e => !e.IsDeleted && e.Date >= startOfMonth && e.Date < startOfMonth.AddMonths(1))
+                            .Where(e => !e.IsDeleted && e.Amount > 0 && e.Date >= startOfMonth && e.Date < startOfMonth.AddMonths(1))
                             .Sum(e => e.Amount);
 
-                        // Reset budget = monthly fixed + rollover from last month
                         var effectiveBudget = category.MonthlyFixedBudget + rollover;
                         category.BudgetAmount = effectiveBudget;
                         category.RemainingAmount = effectiveBudget - currentMonthExpenses;
                         
-                        // Ensure remaining doesn't go below 0
                         if (category.RemainingAmount < 0)
                             category.RemainingAmount = 0;
 
-                        // Update last reset tracking
                         category.LastResetYear = now.Year;
                         category.LastResetMonth = now.Month;
 
@@ -397,85 +417,6 @@ namespace MySuperSystem2025.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error resetting monthly budgets for user {UserId}", userId);
-            }
-        }
-
-        /// <summary>
-        /// One-time fix: Recalculate BudgetAmount for one-time budget categories that were inflated
-        /// by the old AddFunds bug (which both increased BudgetAmount AND recorded a negative expense).
-        /// The negative expense alone is sufficient for dynamic balance calculation.
-        /// This reverses the BudgetAmount inflation by subtracting the total funds-added amounts.
-        /// Uses a static flag to only run once per application lifetime.
-        /// </summary>
-        private static bool _budgetFixApplied = false;
-        private async Task FixInflatedOneTimeBudgetsAsync(string userId)
-        {
-            if (_budgetFixApplied) return;
-
-            try
-            {
-                var categories = await _unitOfWork.ExpenseCategories.GetUserCategoriesAsync(userId);
-                var allExpenses = await _unitOfWork.Expenses.GetUserExpensesAsync(userId);
-                var needsSave = false;
-
-                foreach (var category in categories)
-                {
-                    // Only fix one-time budget categories (not monthly)
-                    if (category.MonthlyFixedBudget > 0 || category.BudgetAmount <= 0) continue;
-
-                    // Find total funds added (negative expenses with [FUNDS ADDED] prefix)
-                    var fundsAddedTotal = allExpenses
-                        .Where(e => e.CategoryId == category.Id && e.Amount < 0 && e.Reason != null && e.Reason.StartsWith("[FUNDS ADDED]"))
-                        .Sum(e => -e.Amount); // Convert to positive
-
-                    if (fundsAddedTotal > 0 && category.BudgetAmount > fundsAddedTotal)
-                    {
-                        // Check if the budget appears inflated:
-                        // Calculate what remaining would be with current budget vs with corrected budget
-                        var positiveExpenses = allExpenses
-                            .Where(e => e.CategoryId == category.Id && e.Amount > 0)
-                            .Sum(e => e.Amount);
-
-                        // If budget - positiveExpenses + fundsAddedTotal == budget - (positiveExpenses - fundsAddedTotal)
-                        // The corrected budget should be: current budget - fundsAddedTotal
-                        // This only applies if the old bug was in effect (budget was inflated)
-                        var correctedBudget = category.BudgetAmount - fundsAddedTotal;
-                        if (correctedBudget < 0) correctedBudget = 0;
-
-                        // Verify: with corrected budget, remaining = correctedBudget - sum(all expenses including negatives)
-                        var allExpensesSum = allExpenses
-                            .Where(e => e.CategoryId == category.Id)
-                            .Sum(e => e.Amount);
-                        var correctedRemaining = correctedBudget - allExpensesSum;
-
-                        // Sanity check: corrected remaining should equal original budget - positive expenses only
-                        // original_budget - positive_expenses = (corrected_budget) - (positive - fundsAdded)
-                        // = correctedBudget - positiveExpenses + fundsAddedTotal
-                        // = (budgetAmount - fundsAddedTotal) - positiveExpenses + fundsAddedTotal
-                        // = budgetAmount - positiveExpenses ?
-                        if (correctedRemaining >= 0 && category.BudgetAmount != correctedBudget)
-                        {
-                            _logger.LogInformation(
-                                "Fixing inflated budget for category {CategoryName}: {OldBudget} -> {NewBudget} (removed {FundsAdded} from old AddFunds bug)",
-                                category.Name, category.BudgetAmount, correctedBudget, fundsAddedTotal);
-
-                            category.BudgetAmount = correctedBudget;
-                            _unitOfWork.ExpenseCategories.Update(category);
-                            needsSave = true;
-                        }
-                    }
-                }
-
-                if (needsSave)
-                {
-                    await _unitOfWork.SaveChangesAsync();
-                }
-
-                _budgetFixApplied = true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fixing inflated one-time budgets for user {UserId}", userId);
             }
         }
 
@@ -529,7 +470,7 @@ namespace MySuperSystem2025.Services
                 FilterCategoryId = categoryId,
                 FilterStartDate = startDate,
                 FilterEndDate = endDate,
-                TotalAmount = expensesList.Sum(e => e.Amount),
+                TotalAmount = expensesList.Where(e => e.Amount > 0).Sum(e => e.Amount),
                 TotalCount = expensesList.Count,
                 Categories = categories
             };
@@ -565,9 +506,8 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
-        /// Creates a new expense. 
-        /// For MONTHLY budgets: deducts from stored RemainingAmount
-        /// For ONE-TIME budgets: just records the expense (no deduction - calculated dynamically)
+        /// Creates a new expense.
+        /// For BOTH monthly and one-time budgets: validates balance and updates stored RemainingAmount.
         /// </summary>
         public async Task<bool> CreateExpenseAsync(CreateExpenseViewModel model, string userId)
         {
@@ -588,7 +528,28 @@ namespace MySuperSystem2025.Services
                     return false;
                 }
 
-                // Create the expense record (always)
+                // Balance check for ANY category with a budget
+                if (category.BudgetAmount > 0)
+                {
+                    decimal currentRemaining;
+                    if (category.MonthlyFixedBudget > 0)
+                    {
+                        currentRemaining = category.RemainingAmount;
+                    }
+                    else
+                    {
+                        // One-time: calculate dynamically from loaded expenses
+                        currentRemaining = CalcOneTimeRemaining(category);
+                    }
+
+                    if (currentRemaining < model.Amount)
+                    {
+                        _logger.LogWarning("Insufficient balance in category {CategoryId} for expense amount {Amount}. Available: {Available}",
+                            model.CategoryId, model.Amount, currentRemaining);
+                        return false;
+                    }
+                }
+
                 var expense = new Expense
                 {
                     Amount = model.Amount,
@@ -598,28 +559,25 @@ namespace MySuperSystem2025.Services
                     UserId = userId
                 };
 
-                // Only deduct from RemainingAmount for MONTHLY budgets
-                // One-time budgets: remaining is calculated dynamically, not stored
+                await _unitOfWork.Expenses.AddAsync(expense);
+
+                // Update stored RemainingAmount
                 if (category.MonthlyFixedBudget > 0)
                 {
-                    // Check if there's sufficient balance for monthly budgets
-                    if (category.RemainingAmount < model.Amount)
-                    {
-                        _logger.LogWarning("Insufficient balance in monthly budget category {CategoryId} for expense amount {Amount}", model.CategoryId, model.Amount);
-                        return false;
-                    }
-                    
                     category.RemainingAmount -= model.Amount;
+                    if (category.RemainingAmount < 0) category.RemainingAmount = 0;
                     _unitOfWork.ExpenseCategories.Update(category);
-                    _logger.LogInformation("Expense deducted from monthly budget category {CategoryId}", model.CategoryId);
                 }
-                // For one-time budgets: no deduction needed - just record the expense
-                // The remaining balance is calculated dynamically on dashboard load
+                else if (category.BudgetAmount > 0)
+                {
+                    // One-time budget: add the new expense to the collection first so recalc sees it
+                    category.Expenses.Add(expense);
+                    RecalcOneTimeBudget(category);
+                }
 
-                await _unitOfWork.Expenses.AddAsync(expense);
                 await _unitOfWork.SaveChangesAsync();
 
-                _logger.LogInformation("Expense created successfully for user {UserId} in category {CategoryId}", userId, model.CategoryId);
+                _logger.LogInformation("Expense created for user {UserId} in category {CategoryId}, amount {Amount}", userId, model.CategoryId, model.Amount);
                 return true;
             }
             catch (Exception ex)
@@ -631,8 +589,7 @@ namespace MySuperSystem2025.Services
 
         /// <summary>
         /// Updates an existing expense.
-        /// For MONTHLY budgets: adjusts stored RemainingAmount
-        /// For ONE-TIME budgets: just updates the expense record (no balance adjustment)
+        /// For BOTH monthly and one-time budgets: validates balance and updates stored RemainingAmount.
         /// </summary>
         public async Task<bool> UpdateExpenseAsync(EditExpenseViewModel model, string userId)
         {
@@ -650,20 +607,28 @@ namespace MySuperSystem2025.Services
 
                 var oldAmount = expense.Amount;
                 var oldCategoryId = expense.CategoryId;
-                var amountDifference = model.Amount - oldAmount;
 
-                // Handle category change
+                // Category change
                 if (oldCategoryId != model.CategoryId)
                 {
-                    // Refund old category (only if it has monthly budget)
+                    // --- Refund old category ---
                     var oldCategory = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(oldCategoryId, userId);
-                    if (oldCategory != null && oldCategory.MonthlyFixedBudget > 0)
+                    if (oldCategory != null)
                     {
-                        oldCategory.RemainingAmount += oldAmount;
-                        _unitOfWork.ExpenseCategories.Update(oldCategory);
+                        if (oldCategory.MonthlyFixedBudget > 0)
+                        {
+                            oldCategory.RemainingAmount += oldAmount;
+                            _unitOfWork.ExpenseCategories.Update(oldCategory);
+                        }
+                        else if (oldCategory.BudgetAmount > 0)
+                        {
+                            // Mark old amount as 0 in memory so recalc excludes it, then recalc
+                            expense.Amount = 0;
+                            RecalcOneTimeBudget(oldCategory);
+                        }
                     }
 
-                    // Deduct from new category (only if it has monthly budget)
+                    // --- Deduct from new category ---
                     var newCategory = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(model.CategoryId, userId);
                     if (newCategory == null)
                     {
@@ -671,41 +636,95 @@ namespace MySuperSystem2025.Services
                         return false;
                     }
 
+                    // Balance check on new category
+                    if (newCategory.BudgetAmount > 0)
+                    {
+                        decimal available;
+                        if (newCategory.MonthlyFixedBudget > 0)
+                        {
+                            available = newCategory.RemainingAmount;
+                        }
+                        else
+                        {
+                            available = CalcOneTimeRemaining(newCategory);
+                        }
+
+                        if (available < model.Amount)
+                        {
+                            _logger.LogWarning("Insufficient balance in new category {CategoryId}", model.CategoryId);
+                            // Restore old expense amount before returning
+                            expense.Amount = oldAmount;
+                            return false;
+                        }
+                    }
+
                     if (newCategory.MonthlyFixedBudget > 0)
                     {
-                        // Check balance for monthly budgets
-                        if (newCategory.RemainingAmount < model.Amount)
-                        {
-                            _logger.LogWarning("Insufficient balance in new monthly budget category {CategoryId}", model.CategoryId);
-                            return false;
-                        }
                         newCategory.RemainingAmount -= model.Amount;
+                        if (newCategory.RemainingAmount < 0) newCategory.RemainingAmount = 0;
                         _unitOfWork.ExpenseCategories.Update(newCategory);
                     }
-                }
-                else if (amountDifference != 0)
-                {
-                    // Same category, different amount - only adjust for monthly budgets
-                    var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(model.CategoryId, userId);
-                    if (category != null && category.MonthlyFixedBudget > 0)
+
+                    // Update expense fields
+                    expense.Amount = model.Amount;
+                    expense.Date = model.Date;
+                    expense.Reason = model.Reason;
+                    expense.CategoryId = model.CategoryId;
+                    _unitOfWork.Expenses.Update(expense);
+
+                    // Recalc new category for one-time budgets (expense now belongs to it)
+                    if (newCategory.MonthlyFixedBudget == 0 && newCategory.BudgetAmount > 0)
                     {
-                        // Check balance if amount is increasing
-                        if (amountDifference > 0 && category.RemainingAmount < amountDifference)
+                        newCategory.Expenses.Add(expense);
+                        RecalcOneTimeBudget(newCategory);
+                    }
+                }
+                else
+                {
+                    // Same category — update amount/date/reason
+                    var amountDifference = model.Amount - oldAmount;
+
+                    var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(model.CategoryId, userId);
+                    if (category != null && category.BudgetAmount > 0 && amountDifference > 0)
+                    {
+                        // Check balance for increase
+                        decimal available;
+                        if (category.MonthlyFixedBudget > 0)
                         {
-                            _logger.LogWarning("Insufficient balance for expense increase in monthly budget category {CategoryId}", model.CategoryId);
+                            available = category.RemainingAmount;
+                        }
+                        else
+                        {
+                            available = CalcOneTimeRemaining(category);
+                        }
+
+                        if (available < amountDifference)
+                        {
+                            _logger.LogWarning("Insufficient balance for expense increase in category {CategoryId}", model.CategoryId);
                             return false;
                         }
-                        category.RemainingAmount -= amountDifference;
-                        _unitOfWork.ExpenseCategories.Update(category);
+                    }
+
+                    expense.Amount = model.Amount;
+                    expense.Date = model.Date;
+                    expense.Reason = model.Reason;
+                    _unitOfWork.Expenses.Update(expense);
+
+                    if (category != null && amountDifference != 0)
+                    {
+                        if (category.MonthlyFixedBudget > 0)
+                        {
+                            category.RemainingAmount -= amountDifference;
+                            if (category.RemainingAmount < 0) category.RemainingAmount = 0;
+                            _unitOfWork.ExpenseCategories.Update(category);
+                        }
+                        else if (category.BudgetAmount > 0)
+                        {
+                            RecalcOneTimeBudget(category);
+                        }
                     }
                 }
 
-                expense.Amount = model.Amount;
-                expense.Date = model.Date;
-                expense.Reason = model.Reason;
-                expense.CategoryId = model.CategoryId;
-
-                _unitOfWork.Expenses.Update(expense);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation("Expense {ExpenseId} updated for user {UserId}", model.Id, userId);
@@ -720,8 +739,7 @@ namespace MySuperSystem2025.Services
 
         /// <summary>
         /// Soft deletes an expense.
-        /// For MONTHLY budgets: refunds the amount to stored RemainingAmount
-        /// For ONE-TIME budgets: just marks as deleted (no balance adjustment)
+        /// For BOTH monthly and one-time budgets: updates stored RemainingAmount.
         /// </summary>
         public async Task<bool> DeleteExpenseAsync(int id, string userId)
         {
@@ -731,25 +749,36 @@ namespace MySuperSystem2025.Services
                 if (expense == null) return false;
 
                 var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(expense.CategoryId, userId);
-                if (category != null)
-                {
-                    if (category.MonthlyFixedBudget > 0)
-                    {
-                        // Refund the amount for MONTHLY budget categories
-                        category.RemainingAmount += expense.Amount;
-                        _unitOfWork.ExpenseCategories.Update(category);
-                        _logger.LogInformation("Expense amount refunded to monthly budget category {CategoryId}", expense.CategoryId);
-                    }
-                    // For one-time budgets (including funds-added entries):
-                    // No need to adjust BudgetAmount. The soft-delete will exclude this expense
-                    // from the dynamic balance calculation, which automatically corrects the remaining amount.
-                }
 
-                // Soft delete
+                // Soft delete the expense first
                 expense.IsDeleted = true;
                 expense.DeletedAt = DateTime.UtcNow;
-
                 _unitOfWork.Expenses.Update(expense);
+
+                if (category != null)
+                {
+                    if (expense.Amount < 0 && category.MonthlyFixedBudget == 0)
+                    {
+                        // Deleting a funds-added entry: undo the BudgetAmount increase
+                        var fundsAmount = -expense.Amount;
+                        category.BudgetAmount -= fundsAmount;
+                        if (category.BudgetAmount < 0) category.BudgetAmount = 0;
+                        RecalcOneTimeBudget(category);
+                    }
+                    else if (category.MonthlyFixedBudget > 0)
+                    {
+                        // Monthly budget: refund
+                        category.RemainingAmount += expense.Amount;
+                        _unitOfWork.ExpenseCategories.Update(category);
+                    }
+                    else if (category.BudgetAmount > 0)
+                    {
+                        // One-time budget with positive expense: recalculate
+                        // IsDeleted is already set, so recalc will exclude it
+                        RecalcOneTimeBudget(category);
+                    }
+                }
+
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation("Expense {ExpenseId} deleted for user {UserId}", id, userId);
@@ -764,12 +793,11 @@ namespace MySuperSystem2025.Services
 
         /// <summary>
         /// Gets all categories for a user with dynamically calculated balance information
-        /// FIX: Calculate remaining dynamically based on budget type instead of using stored value
         /// </summary>
         public async Task<List<ExpenseCategoryViewModel>> GetCategoriesAsync(string userId)
         {
             var categories = await _unitOfWork.ExpenseCategories.GetUserCategoriesAsync(userId);
-            var allExpenses = await _unitOfWork.Expenses.GetUserExpensesAsync(userId);
+            var allExpenses = (await _unitOfWork.Expenses.GetUserExpensesAsync(userId)).ToList();
             var now = DateTime.Now;
             var startOfMonth = new DateTime(now.Year, now.Month, 1);
             var endOfMonth = startOfMonth.AddMonths(1);
@@ -781,7 +809,6 @@ namespace MySuperSystem2025.Services
                 
                 if (c.MonthlyFixedBudget > 0)
                 {
-                    // Calculate rollover from previous month (only if enabled)
                     decimal rollover = 0;
                     if (c.RolloverEnabled)
                     {
@@ -790,19 +817,17 @@ namespace MySuperSystem2025.Services
                         {
                             var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
                             var prevSpent = allExpenses
-                                .Where(e => e.CategoryId == c.Id && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
+                                .Where(e => e.CategoryId == c.Id && e.Amount > 0 && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
                                 .Sum(e => e.Amount);
                             var prevLeftover = c.MonthlyFixedBudget - prevSpent;
                             if (prevLeftover > 0)
-                            {
                                 rollover = prevLeftover;
-                            }
                         }
                     }
 
                     effectiveBudget = c.MonthlyFixedBudget + rollover;
                     var monthExpenses = allExpenses
-                        .Where(e => e.CategoryId == c.Id && e.Date >= startOfMonth && e.Date < endOfMonth)
+                        .Where(e => e.CategoryId == c.Id && e.Amount > 0 && e.Date >= startOfMonth && e.Date < endOfMonth)
                         .Sum(e => e.Amount);
                     remaining = effectiveBudget - monthExpenses;
                 }
@@ -810,7 +835,7 @@ namespace MySuperSystem2025.Services
                 {
                     effectiveBudget = c.BudgetAmount;
                     var totalExpenses = allExpenses
-                        .Where(e => e.CategoryId == c.Id)
+                        .Where(e => e.CategoryId == c.Id && e.Amount > 0)
                         .Sum(e => e.Amount);
                     remaining = effectiveBudget - totalExpenses;
                 }
@@ -820,13 +845,16 @@ namespace MySuperSystem2025.Services
                     remaining = 0;
                 }
                 
+                // Only count actual positive expenses for the count
+                var expenseCount = allExpenses.Count(e => e.CategoryId == c.Id && e.Amount > 0);
+                
                 return new ExpenseCategoryViewModel
                 {
                     Id = c.Id,
                     Name = c.Name,
                     Description = c.Description,
                     IsDefault = c.IsDefault,
-                    ExpenseCount = c.Expenses.Count,
+                    ExpenseCount = expenseCount,
                     BudgetAmount = effectiveBudget,
                     RemainingAmount = remaining > 0 ? remaining : 0,
                     MonthlyFixedBudget = c.MonthlyFixedBudget,
@@ -837,7 +865,6 @@ namespace MySuperSystem2025.Services
 
         /// <summary>
         /// Gets a category for editing with dynamically calculated balance info
-        /// FIX: Calculate remaining dynamically based on budget type
         /// </summary>
         public async Task<EditExpenseCategoryViewModel?> GetCategoryForEditAsync(int id, string userId)
         {
@@ -853,7 +880,6 @@ namespace MySuperSystem2025.Services
             
             if (category.MonthlyFixedBudget > 0)
             {
-                // Calculate rollover from previous month (only if enabled)
                 decimal rollover = 0;
                 if (category.RolloverEnabled)
                 {
@@ -862,7 +888,7 @@ namespace MySuperSystem2025.Services
                     {
                         var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
                         var prevSpent = category.Expenses
-                            .Where(e => !e.IsDeleted && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
+                            .Where(e => !e.IsDeleted && e.Amount > 0 && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
                             .Sum(e => e.Amount);
                         var prevLeftover = category.MonthlyFixedBudget - prevSpent;
                         if (prevLeftover > 0)
@@ -872,15 +898,14 @@ namespace MySuperSystem2025.Services
 
                 budget = category.MonthlyFixedBudget + rollover;
                 totalExpenses = category.Expenses
-                    .Where(e => !e.IsDeleted && e.Date >= startOfMonth && e.Date < endOfMonth)
+                    .Where(e => !e.IsDeleted && e.Amount > 0 && e.Date >= startOfMonth && e.Date < endOfMonth)
                     .Sum(e => e.Amount);
             }
             else
             {
-                // One-time budget: calculate from ALL expenses
                 budget = category.BudgetAmount;
                 totalExpenses = category.Expenses
-                    .Where(e => !e.IsDeleted)
+                    .Where(e => !e.IsDeleted && e.Amount > 0)
                     .Sum(e => e.Amount);
             }
             
@@ -903,7 +928,6 @@ namespace MySuperSystem2025.Services
 
         /// <summary>
         /// Gets category details for display/deletion with dynamically calculated balance
-        /// FIX: Calculate remaining dynamically based on budget type
         /// </summary>
         public async Task<ExpenseCategoryViewModel?> GetCategoryDetailsAsync(int id, string userId)
         {
@@ -919,7 +943,6 @@ namespace MySuperSystem2025.Services
             
             if (category.MonthlyFixedBudget > 0)
             {
-                // Calculate rollover from previous month (only if enabled)
                 decimal rollover = 0;
                 if (category.RolloverEnabled)
                 {
@@ -928,7 +951,7 @@ namespace MySuperSystem2025.Services
                     {
                         var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
                         var prevSpent = category.Expenses
-                            .Where(e => !e.IsDeleted && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
+                            .Where(e => !e.IsDeleted && e.Amount > 0 && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
                             .Sum(e => e.Amount);
                         var prevLeftover = category.MonthlyFixedBudget - prevSpent;
                         if (prevLeftover > 0)
@@ -938,15 +961,14 @@ namespace MySuperSystem2025.Services
 
                 budget = category.MonthlyFixedBudget + rollover;
                 totalExpenses = category.Expenses
-                    .Where(e => !e.IsDeleted && e.Date >= startOfMonth && e.Date < endOfMonth)
+                    .Where(e => !e.IsDeleted && e.Amount > 0 && e.Date >= startOfMonth && e.Date < endOfMonth)
                     .Sum(e => e.Amount);
             }
             else
             {
-                // One-time budget: calculate from ALL expenses
                 budget = category.BudgetAmount;
                 totalExpenses = category.Expenses
-                    .Where(e => !e.IsDeleted)
+                    .Where(e => !e.IsDeleted && e.Amount > 0)
                     .Sum(e => e.Amount);
             }
             
@@ -958,7 +980,7 @@ namespace MySuperSystem2025.Services
                 Name = category.Name,
                 Description = category.Description,
                 IsDefault = category.IsDefault,
-                ExpenseCount = category.Expenses.Count(e => !e.IsDeleted),
+                ExpenseCount = category.Expenses.Count(e => !e.IsDeleted && e.Amount > 0),
                 BudgetAmount = budget,
                 RemainingAmount = remaining > 0 ? remaining : 0,
                 MonthlyFixedBudget = category.MonthlyFixedBudget,
@@ -1014,7 +1036,6 @@ namespace MySuperSystem2025.Services
 
         /// <summary>
         /// Updates an expense category including budget and monthly fixed budget adjustment
-        /// FIX: For one-time budgets, calculate from ALL expenses. For monthly budgets, use current month expenses.
         /// </summary>
         public async Task<bool> UpdateCategoryAsync(EditExpenseCategoryViewModel model, string userId)
         {
@@ -1042,7 +1063,7 @@ namespace MySuperSystem2025.Services
                 var newBudget = model.MonthlyFixedBudget > 0 ? model.MonthlyFixedBudget : model.BudgetAmount;
                 category.BudgetAmount = newBudget;
 
-                // FIX: Calculate remaining based on budget type
+                // FIX: Calculate remaining based on budget type (exclude funds-added entries)
                 if (newBudget > 0)
                 {
                     decimal totalExpenses;
@@ -1052,14 +1073,14 @@ namespace MySuperSystem2025.Services
                         // Monthly fixed budget: calculate from current month expenses only
                         var startOfMonth = new DateTime(now.Year, now.Month, 1);
                         totalExpenses = category.Expenses
-                            .Where(e => !e.IsDeleted && e.Date >= startOfMonth && e.Date < startOfMonth.AddMonths(1))
+                            .Where(e => !e.IsDeleted && e.Amount > 0 && e.Date >= startOfMonth && e.Date < startOfMonth.AddMonths(1))
                             .Sum(e => e.Amount);
                     }
                     else
                     {
-                        // One-time/manual budget: calculate from ALL expenses
+                        // One-time/manual budget: calculate from ALL actual expenses (exclude funds-added)
                         totalExpenses = category.Expenses
-                            .Where(e => !e.IsDeleted)
+                            .Where(e => !e.IsDeleted && e.Amount > 0)
                             .Sum(e => e.Amount);
                     }
                     
@@ -1096,7 +1117,7 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
-        /// Soft deletes an expense category (allows deletion even with expenses)
+        /// Soft deletes an expense category
         /// </summary>
         public async Task<bool> DeleteCategoryAsync(int id, string userId)
         {
@@ -1155,17 +1176,12 @@ namespace MySuperSystem2025.Services
                 var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(categoryId, userId);
                 if (category == null) return false;
 
-                // Calculate total expenses for this category
-                var totalExpenses = category.Expenses.Where(e => !e.IsDeleted).Sum(e => e.Amount);
+                var totalExpenses = category.Expenses.Where(e => !e.IsDeleted && e.Amount > 0).Sum(e => e.Amount);
 
                 category.BudgetAmount = budgetAmount;
                 category.RemainingAmount = budgetAmount - totalExpenses;
-
-                // Ensure remaining doesn't go below 0
                 if (category.RemainingAmount < 0)
-                {
                     category.RemainingAmount = 0;
-                }
 
                 _unitOfWork.ExpenseCategories.Update(category);
                 await _unitOfWork.SaveChangesAsync();
@@ -1188,7 +1204,8 @@ namespace MySuperSystem2025.Services
         {
             var categories = await _unitOfWork.ExpenseCategories.GetUserCategoriesAsync(userId);
             var monthlyCats = categories.Where(c => c.MonthlyFixedBudget > 0).ToList();
-            var allExpenses = (await _unitOfWork.Expenses.GetUserExpensesAsync(userId)).ToList();
+            var allExpenses = (await _unitOfWork.Expenses.GetUserExpensesAsync(userId))
+                .Where(e => e.Amount > 0).ToList();
 
             var today = DateTime.Today;
             var currentMonthStart = new DateTime(today.Year, today.Month, 1);
@@ -1201,7 +1218,6 @@ namespace MySuperSystem2025.Services
                 MonthlyFixedBudget = c.MonthlyFixedBudget
             });
 
-            // Iterate from BudgetStartDate to the month BEFORE current
             var date = BudgetStartDate;
             while (date < currentMonthStart)
             {
@@ -1246,7 +1262,6 @@ namespace MySuperSystem2025.Services
                 date = date.AddMonths(1);
             }
 
-            // Most recent month first
             monthlyBreakdown.Reverse();
 
             return new MonthlySavingsViewModel
@@ -1260,10 +1275,8 @@ namespace MySuperSystem2025.Services
 
         /// <summary>
         /// Adds funds back to a one-time budget category.
-        /// Records a negative expense entry as an audit trail. The dynamic balance calculation
-        /// (remaining = budget - sum(expenses)) automatically accounts for the negative expense,
-        /// so we do NOT need to modify BudgetAmount.
-        /// Example: You sold something from your business, so the money goes back in.
+        /// Increases BudgetAmount and recalculates RemainingAmount.
+        /// Also records a negative expense as an audit trail.
         /// </summary>
         public async Task<bool> AddFundsToCategoryAsync(AddFundsViewModel model, string userId)
         {
@@ -1283,13 +1296,21 @@ namespace MySuperSystem2025.Services
                     return false;
                 }
 
-                // Do NOT increase BudgetAmount here.
-                // The negative expense entry below will reduce the sum of expenses,
-                // which automatically increases the dynamically calculated remaining balance.
-                // Previously this was double-counting: budget went up AND expenses went down.
+                // Increase BudgetAmount
+                category.BudgetAmount += model.Amount;
 
-                // Record a negative expense as an audit trail (income/funds added)
-                var expense = new Expense
+                // Recalculate RemainingAmount from scratch
+                var totalSpent = category.Expenses
+                    .Where(e => !e.IsDeleted && e.Amount > 0)
+                    .Sum(e => e.Amount);
+                category.RemainingAmount = category.BudgetAmount - totalSpent;
+                if (category.RemainingAmount < 0)
+                    category.RemainingAmount = 0;
+
+                _unitOfWork.ExpenseCategories.Update(category);
+
+                // Record a negative expense as audit trail
+                var auditExpense = new Expense
                 {
                     Amount = -model.Amount,
                     Date = model.Date,
@@ -1297,18 +1318,82 @@ namespace MySuperSystem2025.Services
                     CategoryId = model.CategoryId,
                     UserId = userId
                 };
+                await _unitOfWork.Expenses.AddAsync(auditExpense);
 
-                await _unitOfWork.Expenses.AddAsync(expense);
                 await _unitOfWork.SaveChangesAsync();
 
                 _logger.LogInformation(
-                    "Funds added to category {CategoryName}: Amount={Amount}, Budget={Budget}, Reason={Reason}",
-                    category.Name, model.Amount, category.BudgetAmount, model.Reason);
+                    "Funds added to category {CategoryName}: Amount={Amount}, NewBudget={Budget}, Remaining={Remaining}",
+                    category.Name, model.Amount, category.BudgetAmount, category.RemainingAmount);
                 return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error adding funds to category {CategoryId} for user {UserId}", model.CategoryId, userId);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Updates an existing funds-added entry (legacy negative expense).
+        /// Adjusts BudgetAmount to reflect the change in funds amount and recalculates.
+        /// </summary>
+        public async Task<bool> UpdateFundsEntryAsync(EditFundsViewModel model, string userId)
+        {
+            try
+            {
+                var expense = await _unitOfWork.Expenses.GetExpenseWithCategoryAsync(model.Id, userId);
+                if (expense == null) return false;
+
+                // Ensure this is actually a funds-added entry
+                if (expense.Amount >= 0)
+                {
+                    _logger.LogWarning("Attempted to update non-funds entry {ExpenseId} via UpdateFundsEntryAsync", model.Id);
+                    return false;
+                }
+
+                // Validate date is not in the future
+                if (model.Date.Date > DateTime.Today)
+                {
+                    _logger.LogWarning("Attempted to update funds entry with future date");
+                    return false;
+                }
+
+                // Calculate the difference in funds amount and adjust BudgetAmount
+                var oldFundsAmount = -expense.Amount; // old positive amount
+                var newFundsAmount = model.Amount;     // new positive amount
+                var difference = newFundsAmount - oldFundsAmount;
+
+                var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(expense.CategoryId, userId);
+                if (category != null && category.MonthlyFixedBudget == 0)
+                {
+                    // Adjust BudgetAmount by the difference
+                    category.BudgetAmount += difference;
+                    if (category.BudgetAmount < 0) category.BudgetAmount = 0;
+
+                    // Recalculate remaining
+                    var totalSpent = category.Expenses
+                        .Where(e => !e.IsDeleted && e.Amount > 0)
+                        .Sum(e => e.Amount);
+                    category.RemainingAmount = category.BudgetAmount - totalSpent;
+                    if (category.RemainingAmount < 0) category.RemainingAmount = 0;
+
+                    _unitOfWork.ExpenseCategories.Update(category);
+                }
+
+                expense.Amount = -model.Amount;
+                expense.Date = model.Date;
+                expense.Reason = $"[FUNDS ADDED] {model.Reason}";
+
+                _unitOfWork.Expenses.Update(expense);
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation("Funds entry {ExpenseId} updated for user {UserId}, budget adjusted by {Difference}", model.Id, userId, difference);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating funds entry {ExpenseId} for user {UserId}", model.Id, userId);
                 return false;
             }
         }
