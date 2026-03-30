@@ -57,11 +57,16 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         /// Whether this monthly budget is currently paused
         /// </summary>
         public bool IsPaused => MonthlyFixedBudget > 0 && !IsBudgetActive;
+
+        /// <summary>
+        /// Whether this category is hidden from dashboard and dropdowns
+        /// </summary>
+        public bool IsHidden { get; set; }
     }
 
     /// <summary>
     /// View model for creating/editing expense categories with budget
-    /// </summary>
+    /// /// </summary>
     public class CreateExpenseCategoryViewModel
     {
         [Required(ErrorMessage = "Category name is required")]

@@ -58,6 +58,13 @@ namespace MySuperSystem2025.Models.Domain
         public bool RolloverEnabled { get; set; } = false;
 
         /// <summary>
+        /// When true, this category is hidden from the dashboard balance cards
+        /// and the category dropdown when creating/editing expenses.
+        /// The category still exists and its data is preserved.
+        /// </summary>
+        public bool IsHidden { get; set; } = false;
+
+        /// <summary>
         /// Year of last budget reset (for tracking monthly resets)
         /// </summary>
         public int? LastResetYear { get; set; }

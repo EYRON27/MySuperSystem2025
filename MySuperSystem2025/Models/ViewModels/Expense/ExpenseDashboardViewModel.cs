@@ -190,6 +190,11 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         public bool HasBudget => BudgetAmount > 0;
         public bool HasMonthlyBudget => MonthlyFixedBudget > 0;
         public bool IsPaused => MonthlyFixedBudget > 0 && !IsBudgetActive;
+
+        /// <summary>
+        /// Whether this category is hidden from dashboard and dropdowns
+        /// </summary>
+        public bool IsHidden { get; set; }
     }
 }
 

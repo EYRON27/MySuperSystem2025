@@ -46,10 +46,11 @@ namespace MySuperSystem2025.Controllers
         public async Task<IActionResult> Create()
         {
             var categories = await _expenseService.GetCategoriesAsync(UserId);
+            var visibleCategories = categories.Where(c => !c.IsHidden).ToList();
             var model = new CreateExpenseViewModel
             {
                 Date = DateTime.Today,
-                Categories = new SelectList(categories, "Id", "Name")
+                Categories = new SelectList(visibleCategories, "Id", "Name")
             };
             return View(model);
         }
@@ -67,7 +68,7 @@ namespace MySuperSystem2025.Controllers
             if (!ModelState.IsValid)
             {
                 var categories = await _expenseService.GetCategoriesAsync(UserId);
-                model.Categories = new SelectList(categories, "Id", "Name");
+                model.Categories = new SelectList(categories.Where(c => !c.IsHidden), "Id", "Name");
                 return View(model);
             }
 
@@ -91,7 +92,7 @@ namespace MySuperSystem2025.Controllers
             }
             
             var cats = await _expenseService.GetCategoriesAsync(UserId);
-            model.Categories = new SelectList(cats, "Id", "Name");
+            model.Categories = new SelectList(cats.Where(c => !c.IsHidden), "Id", "Name");
             return View(model);
         }
 
@@ -112,7 +113,9 @@ namespace MySuperSystem2025.Controllers
             }
 
             var categories = await _expenseService.GetCategoriesAsync(UserId);
-            expense.Categories = new SelectList(categories, "Id", "Name");
+            // Show visible categories + the currently selected one (even if hidden)
+            var availableCategories = categories.Where(c => !c.IsHidden || c.Id == expense.CategoryId).ToList();
+            expense.Categories = new SelectList(availableCategories, "Id", "Name");
             return View(expense);
         }
 
@@ -134,7 +137,7 @@ namespace MySuperSystem2025.Controllers
             if (!ModelState.IsValid)
             {
                 var categories = await _expenseService.GetCategoriesAsync(UserId);
-                model.Categories = new SelectList(categories, "Id", "Name");
+                model.Categories = new SelectList(categories.Where(c => !c.IsHidden || c.Id == model.CategoryId), "Id", "Name");
                 return View(model);
             }
 
@@ -158,7 +161,7 @@ namespace MySuperSystem2025.Controllers
             }
             
             var cats = await _expenseService.GetCategoriesAsync(UserId);
-            model.Categories = new SelectList(cats, "Id", "Name");
+            model.Categories = new SelectList(cats.Where(c => !c.IsHidden || c.Id == model.CategoryId), "Id", "Name");
             return View(model);
         }
 
@@ -305,6 +308,29 @@ namespace MySuperSystem2025.Controllers
             else
             {
                 TempData["Error"] = "Cannot delete this category. It may have expenses associated.";
+            }
+
+            return RedirectToAction(nameof(Categories));
+        }
+
+        // POST: /Expense/ToggleHideCategory/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleHideCategory(int id, string? returnUrl = null)
+        {
+            var result = await _expenseService.ToggleCategoryHiddenAsync(id, UserId);
+            if (result)
+            {
+                TempData["Success"] = "Category visibility updated.";
+            }
+            else
+            {
+                TempData["Error"] = "Failed to update category visibility.";
+            }
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
             }
 
             return RedirectToAction(nameof(Categories));

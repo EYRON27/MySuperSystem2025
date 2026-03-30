@@ -51,5 +51,10 @@ namespace MySuperSystem2025.Services.Interfaces
         /// Updates an existing funds-added entry, preserving its negative amount nature
         /// </summary>
         Task<bool> UpdateFundsEntryAsync(EditFundsViewModel model, string userId);
+
+        /// <summary>
+        /// Toggles the IsHidden flag on a category (hide/unhide from dashboard and dropdowns)
+        /// </summary>
+        Task<bool> ToggleCategoryHiddenAsync(int categoryId, string userId);
     }
 }

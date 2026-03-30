@@ -168,14 +168,23 @@
         </div>
     </div>
 
-    @if (Model.CategoryBalances.Any(c => c.HasBudget || c.HasMonthlyBudget))
+    @if (Model.CategoryBalances.Any(c => (c.HasBudget || c.HasMonthlyBudget) && !c.IsHidden))
     {
         <div class="main-card" style="margin-bottom: 2rem;">
             <div class="card-header">
                 <h5 class="card-title">Category Balances - @Model.BreakdownPeriodName</h5>
+                @{
+                    var hiddenCount = Model.CategoryBalances.Count(c => (c.HasBudget || c.HasMonthlyBudget) && c.IsHidden);
+                }
+                @if (hiddenCount > 0)
+                {
+                    <span class="text-muted" style="font-size: 0.8125rem;">
+                        <i class="bi bi-eye-slash me-1"></i>@hiddenCount hidden
+                    </span>
+                }
             </div>
             <div class="category-balance-grid">
-                @foreach (var category in Model.CategoryBalances.Where(c => c.HasBudget || c.HasMonthlyBudget))
+                @foreach (var category in Model.CategoryBalances.Where(c => (c.HasBudget || c.HasMonthlyBudget) && !c.IsHidden))
                 {
                     <div class="category-balance-card @(category.HasMonthlyBudget && category.IsLowBalance ? "warning" : "")">
                         <div class="d-flex justify-content-between align-items-start mb-2">

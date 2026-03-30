@@ -350,7 +350,8 @@ namespace MySuperSystem2025.Services
                     MonthlyFixedBudget = c.MonthlyFixedBudget,
                     IsBudgetActive = c.IsBudgetActive,
                     SpentThisMonth = spentThisMonth,
-                    TotalExpenses = totalExpensesForBudget
+                    TotalExpenses = totalExpensesForBudget,
+                    IsHidden = c.IsHidden
                 };
             }).ToList();
         }
@@ -858,7 +859,8 @@ namespace MySuperSystem2025.Services
                     BudgetAmount = effectiveBudget,
                     RemainingAmount = remaining > 0 ? remaining : 0,
                     MonthlyFixedBudget = c.MonthlyFixedBudget,
-                    IsBudgetActive = c.IsBudgetActive
+                    IsBudgetActive = c.IsBudgetActive,
+                    IsHidden = c.IsHidden
                 };
             }).ToList();
         }
@@ -984,7 +986,8 @@ namespace MySuperSystem2025.Services
                 BudgetAmount = budget,
                 RemainingAmount = remaining > 0 ? remaining : 0,
                 MonthlyFixedBudget = category.MonthlyFixedBudget,
-                IsBudgetActive = category.IsBudgetActive
+                IsBudgetActive = category.IsBudgetActive,
+                IsHidden = category.IsHidden
             };
         }
 
@@ -1394,6 +1397,30 @@ namespace MySuperSystem2025.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating funds entry {ExpenseId} for user {UserId}", model.Id, userId);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Toggles the IsHidden flag on a category (hide/unhide from dashboard and dropdowns)
+        /// </summary>
+        public async Task<bool> ToggleCategoryHiddenAsync(int categoryId, string userId)
+        {
+            try
+            {
+                var category = await _unitOfWork.ExpenseCategories.GetCategoryWithExpensesAsync(categoryId, userId);
+                if (category == null) return false;
+
+                category.IsHidden = !category.IsHidden;
+                _unitOfWork.ExpenseCategories.Update(category);
+                await _unitOfWork.SaveChangesAsync();
+
+                _logger.LogInformation("Category {CategoryId} IsHidden toggled to {IsHidden} for user {UserId}", categoryId, category.IsHidden, userId);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling IsHidden for category {CategoryId} for user {UserId}", categoryId, userId);
                 return false;
             }
         }

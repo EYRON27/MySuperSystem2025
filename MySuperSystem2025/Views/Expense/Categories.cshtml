@@ -240,8 +240,18 @@
                         <div class="category-footer">
                             <span class="expense-count">
                                 @category.ExpenseCount @(category.ExpenseCount == 1 ? "expense" : "expenses")
+                                @if (category.IsHidden)
+                                {
+                                    <span class="badge bg-secondary ms-1" title="Hidden from dashboard & dropdowns"><i class="bi bi-eye-slash"></i> Hidden</span>
+                                }
                             </span>
                             <div class="action-buttons">
+                                <form asp-action="ToggleHideCategory" asp-route-id="@category.Id" method="post" style="display: inline;">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm @(category.IsHidden ? "btn-outline-success" : "btn-outline-secondary") btn-action" title="@(category.IsHidden ? "Show on dashboard" : "Hide from dashboard")">
+                                        <i class="bi @(category.IsHidden ? "bi-eye" : "bi-eye-slash")"></i>
+                                    </button>
+                                </form>
                                 @if (!category.HasMonthlyBudget && category.BudgetAmount > 0)
                                 {
                                     <a asp-action="AddFunds" asp-route-id="@category.Id" class="btn btn-sm btn-outline-success btn-action" title="Add Funds">
