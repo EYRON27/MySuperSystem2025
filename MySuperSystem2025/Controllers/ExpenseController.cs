@@ -337,12 +337,36 @@ namespace MySuperSystem2025.Controllers
         }
 
         // GET: /Expense/ExportPdf
-        public async Task<IActionResult> ExportPdf(string? breakdown = null)
+        public async Task<IActionResult> ExportPdf(string? breakdown = null, string? month = null)
         {
-            var dashboard = await _expenseService.GetDashboardAsync(UserId, breakdown);
-            var pdfBytes = _pdfService.GenerateExpenseDashboardPdf(dashboard, User.Identity?.Name ?? "User");
+            // Parse month parameter (format: "yyyy-MM") to get date range
+            DateTime? startDate = null;
+            DateTime? endDate = null;
+            string monthLabel = "All";
 
-            return File(pdfBytes, "application/pdf", $"ExpenseReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
+            if (!string.IsNullOrEmpty(month) && month.Contains('-'))
+            {
+                var parts = month.Split('-');
+                if (parts.Length == 2 && int.TryParse(parts[0], out var year) && int.TryParse(parts[1], out var m))
+                {
+                    startDate = new DateTime(year, m, 1);
+                    endDate = startDate.Value.AddMonths(1).AddDays(-1);
+                    monthLabel = startDate.Value.ToString("MMMM yyyy");
+                }
+            }
+
+            var dashboard = await _expenseService.GetDashboardAsync(UserId, breakdown, month);
+
+            // Fetch ALL expenses for the selected month (not just recent 10)
+            var expenseList = await _expenseService.GetExpensesAsync(UserId, startDate: startDate, endDate: endDate);
+
+            var pdfBytes = _pdfService.GenerateExpenseDashboardPdf(dashboard, expenseList.Expenses, monthLabel, User.Identity?.Name ?? "User");
+
+            var fileName = startDate.HasValue
+                ? $"ExpenseReport_{startDate.Value:yyyyMM}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf"
+                : $"ExpenseReport_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+
+            return File(pdfBytes, "application/pdf", fileName);
         }
 
         // GET: /Expense/Savings

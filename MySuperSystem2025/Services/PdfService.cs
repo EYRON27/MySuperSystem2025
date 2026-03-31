@@ -45,9 +45,9 @@ namespace MySuperSystem2025.Services
         }
 
         /// <summary>
-        /// Generates PDF for Expense Dashboard
+        /// Generates PDF for Expense Dashboard with all expenses for the selected month
         /// </summary>
-        public byte[] GenerateExpenseDashboardPdf(ExpenseDashboardViewModel model, string userName)
+        public byte[] GenerateExpenseDashboardPdf(ExpenseDashboardViewModel model, List<ExpenseListItemViewModel> allExpenses, string monthLabel, string userName)
         {
             using var memoryStream = new MemoryStream();
             var document = new Document(PageSize.A4, 40, 40, 40, 40);
@@ -57,9 +57,16 @@ namespace MySuperSystem2025.Services
 
             // Title
             var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 20, ColorDarkGray);
-            var title = new Paragraph("Expense Dashboard Report\n\n", titleFont);
+            var title = new Paragraph("Expense Report\n\n", titleFont);
             title.Alignment = Element.ALIGN_CENTER;
             document.Add(title);
+
+            // Subtitle with month
+            var subtitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, ColorBlue);
+            var subtitle = new Paragraph(monthLabel == "All" ? "Current Period" : monthLabel, subtitleFont);
+            subtitle.Alignment = Element.ALIGN_CENTER;
+            document.Add(subtitle);
+            document.Add(new Paragraph(" "));
 
             // User and Date Info
             var infoFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, ColorGray);
@@ -127,10 +134,20 @@ namespace MySuperSystem2025.Services
                 document.Add(new Paragraph(" "));
             }
 
-            // Recent Expenses
-            if (model.RecentExpenses.Any())
+            // All Expenses for the selected month (full list, not just recent 10)
+            var actualExpenses = allExpenses.Where(e => e.Amount > 0).OrderByDescending(e => e.Date).ToList();
+            var fundsEntries = allExpenses.Where(e => e.Amount < 0).OrderByDescending(e => e.Date).ToList();
+
+            if (actualExpenses.Any())
             {
-                document.Add(new Paragraph("Recent Expenses", sectionFont));
+                var expenseTitle = monthLabel == "All"
+                    ? "All Expenses"
+                    : $"All Expenses - {monthLabel}";
+                document.Add(new Paragraph(expenseTitle, sectionFont));
+
+                var countFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, ColorGray);
+                var totalAmount = actualExpenses.Sum(e => e.Amount);
+                document.Add(new Paragraph($"{actualExpenses.Count} expenses | Total: {PesoSymbol}{totalAmount:N2}", countFont));
                 document.Add(new Paragraph(" "));
 
                 var expenseTable = new PdfPTable(4) { WidthPercentage = 100 };
@@ -141,7 +158,7 @@ namespace MySuperSystem2025.Services
                 AddHeaderCell(expenseTable, "Reason");
                 AddHeaderCell(expenseTable, "Amount");
 
-                foreach (var expense in model.RecentExpenses.Take(15))
+                foreach (var expense in actualExpenses)
                 {
                     AddDataCell(expenseTable, expense.Date.ToString("MMM dd, yyyy"));
                     AddDataCell(expenseTable, expense.CategoryName);
@@ -149,7 +166,48 @@ namespace MySuperSystem2025.Services
                     AddDataCell(expenseTable, $"{PesoSymbol}{expense.Amount:N2}");
                 }
 
+                // Total row
+                var totalFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, ColorWhite);
+                var totalCell1 = new PdfPCell(new Phrase("", totalFont)) { BackgroundColor = ColorHeaderBg, Padding = 8, Colspan = 3, HorizontalAlignment = Element.ALIGN_RIGHT };
+                var totalLabelCell = new PdfPCell(new Phrase("TOTAL", totalFont)) { BackgroundColor = ColorHeaderBg, Padding = 8, Colspan = 3, HorizontalAlignment = Element.ALIGN_RIGHT };
+                var totalAmountCell = new PdfPCell(new Phrase($"{PesoSymbol}{totalAmount:N2}", totalFont)) { BackgroundColor = ColorHeaderBg, Padding = 8, HorizontalAlignment = Element.ALIGN_LEFT };
+                expenseTable.AddCell(totalLabelCell);
+                expenseTable.AddCell(totalAmountCell);
+
                 document.Add(expenseTable);
+                document.Add(new Paragraph(" "));
+            }
+
+            // Funds Added entries (if any)
+            if (fundsEntries.Any())
+            {
+                document.Add(new Paragraph("Funds Added", sectionFont));
+                document.Add(new Paragraph(" "));
+
+                var fundsTable = new PdfPTable(4) { WidthPercentage = 100 };
+                fundsTable.SetWidths(new float[] { 1.5f, 1.5f, 3, 1.5f });
+
+                AddHeaderCell(fundsTable, "Date");
+                AddHeaderCell(fundsTable, "Category");
+                AddHeaderCell(fundsTable, "Reason");
+                AddHeaderCell(fundsTable, "Amount");
+
+                foreach (var entry in fundsEntries)
+                {
+                    AddDataCell(fundsTable, entry.Date.ToString("MMM dd, yyyy"));
+                    AddDataCell(fundsTable, entry.CategoryName);
+                    AddDataCell(fundsTable, entry.Reason);
+                    var amountFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, ColorGreen);
+                    var amountCell = new PdfPCell(new Phrase($"+{PesoSymbol}{(-entry.Amount):N2}", amountFont))
+                    {
+                        Padding = 6,
+                        Border = Rectangle.BOX,
+                        BorderColor = ColorLightGray
+                    };
+                    fundsTable.AddCell(amountCell);
+                }
+
+                document.Add(fundsTable);
             }
 
             document.Close();
