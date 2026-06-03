@@ -56,5 +56,10 @@ namespace MySuperSystem2025.Services.Interfaces
         /// Toggles the IsHidden flag on a category (hide/unhide from dashboard and dropdowns)
         /// </summary>
         Task<bool> ToggleCategoryHiddenAsync(int categoryId, string userId);
+
+        /// <summary>
+        /// Gets business money summary for one-time budget categories that have funds added
+        /// </summary>
+        Task<BusinessSummaryViewModel> GetBusinessSummaryAsync(string userId, string? selectedMonth = null);
     }
 }

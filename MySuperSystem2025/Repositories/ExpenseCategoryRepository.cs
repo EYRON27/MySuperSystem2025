@@ -17,7 +17,7 @@ namespace MySuperSystem2025.Repositories
         public async Task<IEnumerable<ExpenseCategory>> GetUserCategoriesAsync(string userId)
         {
             return await _dbSet
-                .Where(c => c.UserId == userId)
+                .Where(c => c.UserId == userId && !c.IsDeleted)
                 .OrderBy(c => c.Name)
                 .ToListAsync();
         }
@@ -25,8 +25,8 @@ namespace MySuperSystem2025.Repositories
         public async Task<ExpenseCategory?> GetCategoryWithExpensesAsync(int id, string userId)
         {
             return await _dbSet
-                .Include(c => c.Expenses)
-                .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId);
+                .Include(c => c.Expenses.Where(e => !e.IsDeleted))
+                .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId && !c.IsDeleted);
         }
 
         public async Task<bool> CategoryNameExistsAsync(string userId, string name, int? excludeId = null)

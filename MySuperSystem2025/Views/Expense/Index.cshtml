@@ -76,6 +76,7 @@
             <div class="action-buttons">
                 <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i>Add Expense</a>
                 <a asp-action="Categories" class="btn btn-outline-secondary"><i class="bi bi-tags me-1"></i>Categories</a>
+                <a asp-action="BusinessSummary" class="btn btn-outline-secondary"><i class="bi bi-shop me-1"></i>Business</a>
                 <a asp-action="List" class="btn btn-outline-secondary"><i class="bi bi-list-ul me-1"></i>All Expenses</a>
                 <a asp-action="ExportPdf" asp-route-breakdown="@Model.BreakdownPeriod" asp-route-month="@Model.SelectedMonth" class="btn btn-outline-danger"><i class="bi bi-file-earmark-pdf me-1"></i>Export PDF</a>
             </div>
@@ -220,8 +221,14 @@
                                     <i class="bi bi-pause-circle me-1"></i>Budget paused — not counting toward monthly totals
                                 </div>
                                 <div class="d-flex justify-content-between mt-2" style="font-size: 0.875rem;">
-                                    <span class="text-muted">Monthly: &#8369;@category.BudgetAmount.ToString("N2")</span>
-                                    <span class="text-muted">Paused</span>
+                                    <div>
+                                        <span class="text-muted">Monthly: &#8369;@category.BudgetAmount.ToString("N2")</span>
+                                        @if (category.FundsAddedThisMonth > 0)
+                                        {
+                                            <div class="text-muted" style="font-size:0.78rem;">+&#8369;@category.FundsAddedThisMonth.ToString("N2") added this month</div>
+                                        }
+                                    </div>
+                                    <div class="fw-bold @(category.RemainingAmount <= 0 ? "text-warning" : "text-success")">Available: &#8369;@category.RemainingAmount.ToString("N2")</div>
                                 </div>
                             }
                             else

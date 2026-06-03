@@ -18,7 +18,7 @@ namespace MySuperSystem2025.Repositories
         {
             return await _dbSet
                 .Include(e => e.Category)
-                .Where(e => e.UserId == userId)
+                .Where(e => e.UserId == userId && !e.IsDeleted)
                 .OrderByDescending(e => e.Date)
                 .ThenByDescending(e => e.CreatedAt)
                 .ToListAsync();
@@ -28,7 +28,7 @@ namespace MySuperSystem2025.Repositories
         {
             return await _dbSet
                 .Include(e => e.Category)
-                .Where(e => e.UserId == userId && e.Date >= startDate && e.Date <= endDate)
+                .Where(e => e.UserId == userId && !e.IsDeleted && e.Date >= startDate && e.Date <= endDate)
                 .OrderByDescending(e => e.Date)
                 .ThenByDescending(e => e.CreatedAt)
                 .ToListAsync();
@@ -38,7 +38,7 @@ namespace MySuperSystem2025.Repositories
         {
             return await _dbSet
                 .Include(e => e.Category)
-                .Where(e => e.UserId == userId && e.CategoryId == categoryId)
+                .Where(e => e.UserId == userId && !e.IsDeleted && e.CategoryId == categoryId)
                 .OrderByDescending(e => e.Date)
                 .ThenByDescending(e => e.CreatedAt)
                 .ToListAsync();

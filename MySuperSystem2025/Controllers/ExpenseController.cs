@@ -376,6 +376,13 @@ namespace MySuperSystem2025.Controllers
             return View(model);
         }
 
+        // GET: /Expense/BusinessSummary
+        public async Task<IActionResult> BusinessSummary(string? month = null)
+        {
+            var model = await _expenseService.GetBusinessSummaryAsync(UserId, month);
+            return View(model);
+        }
+
         // GET: /Expense/AddFunds/5
         [HttpGet]
         public async Task<IActionResult> AddFunds(int id)

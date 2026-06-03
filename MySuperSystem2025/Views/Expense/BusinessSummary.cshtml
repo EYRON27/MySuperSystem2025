@@ -1,0 +1,363 @@
+@model MySuperSystem2025.Models.ViewModels.Expense.BusinessSummaryViewModel
+@{
+    ViewData["Title"] = "Business Money Summary";
+}
+
+<style>
+    .biz-page { max-width: 1400px; margin: 0 auto; }
+    .page-header { margin-bottom: 2rem; }
+    .page-header h1 { font-size: 1.75rem; font-weight: 600; color: #1a1a1a; margin-bottom: 0.5rem; }
+    .filter-card { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem 1.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; }
+    .btn-filter-reset { padding: 0.375rem 0.75rem; font-size: 0.8125rem; font-weight: 500; white-space: nowrap; }
+    .totals-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
+    .total-card { border-radius: 8px; padding: 1.5rem; text-align: center; }
+    .total-card.funds { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .total-card.spent { background: #fef2f2; border: 1px solid #fecaca; }
+    .total-card.remaining { background: #eff6ff; border: 1px solid #bfdbfe; }
+    .total-card.month-funds { background: #f0fdf4; border: 1px solid #d9f99d; }
+    .total-card.month-spent { background: #fff7ed; border: 1px solid #fed7aa; }
+    .total-label { font-size: 0.8125rem; font-weight: 500; margin-bottom: 0.25rem; }
+    .total-value { font-size: 1.75rem; font-weight: 700; }
+    .total-sub { font-size: 0.75rem; color: #6c757d; margin-top: 0.25rem; }
+    .main-card { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.75rem; margin-bottom: 1.5rem; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; }
+    .card-title { font-size: 1rem; font-weight: 600; color: #1a1a1a; }
+    .biz-table { width: 100%; border-collapse: collapse; }
+    .biz-table th { font-size: 0.8125rem; font-weight: 600; color: #6c757d; padding: 0.75rem 1rem; text-align: left; border-bottom: 2px solid #e5e7eb; white-space: nowrap; }
+    .biz-table td { padding: 0.75rem 1rem; border-bottom: 1px solid #f3f4f6; font-size: 0.875rem; }
+    .biz-table tr:hover { background: #f9fafb; }
+    .biz-table tfoot td { font-weight: 700; border-top: 2px solid #e5e7eb; }
+    .category-detail { margin-bottom: 2rem; }
+    .cat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .cat-title { font-size: 1.125rem; font-weight: 600; color: #1a1a1a; }
+    .cat-stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+    .cat-stat { border-radius: 6px; padding: 0.75rem; text-align: center; }
+    .cat-stat.funds { background: #f0fdf4; }
+    .cat-stat.spent { background: #fef2f2; }
+    .cat-stat.remaining { background: #eff6ff; }
+    .cat-stat-value { font-size: 1.125rem; font-weight: 600; }
+    .cat-stat-label { font-size: 0.6875rem; color: #6c757d; }
+    .progress-bar-container { height: 8px; background: #f3f4f6; border-radius: 4px; overflow: hidden; margin-bottom: 1rem; }
+    .progress-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s ease; }
+    .detail-table { width: 100%; border-collapse: collapse; }
+    .detail-table th { font-size: 0.75rem; font-weight: 600; color: #6c757d; padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid #e5e7eb; }
+    .detail-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #f3f4f6; font-size: 0.8125rem; }
+    .detail-table tr:hover { background: #fafafa; }
+    .tabs { display: flex; gap: 0; margin-bottom: 1rem; border-bottom: 2px solid #e5e7eb; }
+    .tab-btn { padding: 0.5rem 1.25rem; font-size: 0.8125rem; font-weight: 500; color: #6c757d; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -2px; cursor: pointer; transition: all 0.2s ease; }
+    .tab-btn:hover { color: #2563eb; }
+    .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: #6c757d; }
+    .empty-state i { font-size: 3rem; margin-bottom: 1rem; opacity: 0.3; }
+    .btn-add-funds { display: inline-flex; align-items: center; gap: 0.375rem; white-space: nowrap; font-size: 0.8125rem; color: #16a34a; text-decoration: none; padding: 0.5rem 0.75rem; border: 1px solid #bbf7d0; border-radius: 6px; background: #f0fdf4; transition: all 0.2s ease; font-weight: 500; }
+    .btn-add-funds:hover { background: #dcfce7; border-color: #86efac; color: #15803d; text-decoration: none; }
+    .btn-action { padding: 0; font-size: 0.875rem; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; }
+</style>
+
+<div class="biz-page">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-start">
+            <div>
+                <h1><i class="bi bi-shop me-2"></i>Business Money Summary</h1>
+                <p class="text-muted mb-0">Track sales, expenses, and remaining balance for your business categories</p>
+            </div>
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    @if (!Model.Categories.Any())
+    {
+        <div class="main-card">
+            <div class="empty-state">
+                <i class="bi bi-shop"></i>
+                <p>No business categories with funds added yet.</p>
+                <p class="text-muted">Add funds to a one-time budget category to start tracking your business money.</p>
+                <a asp-action="Categories" class="btn btn-primary mt-2">Manage Categories</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Month Filter -->
+        @if (Model.AvailableMonths.Any())
+        {
+            <div class="filter-card">
+                <form method="get" class="d-flex align-items-center gap-3" style="width: 100%;">
+                    <label class="mb-0 text-nowrap" style="flex-shrink: 0;"><i class="bi bi-calendar3 me-2"></i>Filter by Month:</label>
+                    <select name="month" class="form-select" style="max-width: 180px;" onchange="this.form.submit()">
+                        @foreach (var monthOption in Model.AvailableMonths)
+                        {
+                            <option value="@monthOption.Value" selected="@monthOption.IsSelected">@monthOption.Display</option>
+                        }
+                    </select>
+                    <a asp-action="BusinessSummary" class="btn btn-outline-secondary btn-filter-reset"><i class="bi bi-x-circle me-1"></i>Reset</a>
+                </form>
+            </div>
+        }
+
+        <!-- Grand Totals -->
+        <div class="totals-grid">
+            <div class="total-card funds">
+                <div class="total-label" style="color: #16a34a;">Total Sales / Funds Added</div>
+                <div class="total-value" style="color: #16a34a;">&#8369;@Model.GrandTotalFundsAdded.ToString("N2")</div>
+                <div class="total-sub">All-time across @Model.Categories.Count @(Model.Categories.Count == 1 ? "category" : "categories")</div>
+            </div>
+            <div class="total-card spent">
+                <div class="total-label" style="color: #dc2626;">Total Expenses</div>
+                <div class="total-value" style="color: #dc2626;">&#8369;@Model.GrandTotalExpenses.ToString("N2")</div>
+                <div class="total-sub">All-time spending from business money</div>
+            </div>
+            <div class="total-card remaining">
+                <div class="total-label" style="color: #2563eb;">Net Remaining</div>
+                <div class="total-value" style="color: #2563eb;">&#8369;@Model.GrandTotalRemaining.ToString("N2")</div>
+                @{
+                    var profitPct = Model.GrandTotalFundsAdded > 0 ? Math.Round((Model.GrandTotalRemaining / Model.GrandTotalFundsAdded) * 100, 1) : 0;
+                }
+                <div class="total-sub">@profitPct% of total funds remaining</div>
+            </div>
+            @if (Model.GrandMonthFundsAdded > 0 || Model.GrandMonthExpenses > 0)
+            {
+                <div class="total-card month-funds">
+                    <div class="total-label" style="color: #16a34a;">This Month Sales</div>
+                    <div class="total-value" style="color: #16a34a;">&#8369;@Model.GrandMonthFundsAdded.ToString("N2")</div>
+                    <div class="total-sub">@Model.SelectedMonthDisplay</div>
+                </div>
+                <div class="total-card month-spent">
+                    <div class="total-label" style="color: #ea580c;">This Month Expenses</div>
+                    <div class="total-value" style="color: #ea580c;">&#8369;@Model.GrandMonthExpenses.ToString("N2")</div>
+                    <div class="total-sub">@Model.SelectedMonthDisplay</div>
+                </div>
+            }
+        </div>
+
+        <!-- Summary Table -->
+        <div class="main-card">
+            <div class="card-header">
+                <h5 class="card-title">Overview by Category</h5>
+            </div>
+            <div class="table-responsive">
+                <table class="biz-table">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th style="text-align: right;">Total Funds Added</th>
+                            <th style="text-align: right;">This Month (+)</th>
+                            <th style="text-align: right;">Total Spent</th>
+                            <th style="text-align: right;">This Month (?)</th>
+                            <th style="text-align: right;">Remaining</th>
+                            <th style="text-align: center;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var biz in Model.Categories)
+                        {
+                            <tr>
+                                <td>
+                                    <span class="fw-bold">@biz.CategoryName</span>
+                                </td>
+                                <td style="text-align: right; color: #16a34a; font-weight: 600;">+&#8369;@biz.TotalFundsAdded.ToString("N2")</td>
+                                <td style="text-align: right; color: #16a34a; font-size: 0.8125rem;">
+                                    @if (biz.FundsAddedThisMonth > 0)
+                                    {
+                                        <span>+&#8369;@biz.FundsAddedThisMonth.ToString("N2")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td style="text-align: right; color: #dc2626; font-weight: 600;">&#8369;@biz.TotalExpenses.ToString("N2")</td>
+                                <td style="text-align: right; color: #dc2626; font-size: 0.8125rem;">
+                                    @if (biz.SpentThisMonth > 0)
+                                    {
+                                        <span>&#8369;@biz.SpentThisMonth.ToString("N2")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td style="text-align: right; color: #2563eb; font-weight: 600;">&#8369;@biz.RemainingAmount.ToString("N2")</td>
+                                <td style="text-align: center;">
+                                    <a asp-action="AddFunds" asp-route-id="@biz.CategoryId" class="btn-add-funds" title="Add funds to @biz.CategoryName">
+                                        <i class="bi bi-plus-circle"></i>Add Funds
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td>TOTAL</td>
+                            <td style="text-align: right; color: #16a34a;">+&#8369;@Model.GrandTotalFundsAdded.ToString("N2")</td>
+                            <td style="text-align: right; color: #16a34a; font-size: 0.8125rem;">
+                                @if (Model.GrandMonthFundsAdded > 0)
+                                {
+                                    <span>+&#8369;@Model.GrandMonthFundsAdded.ToString("N2")</span>
+                                }
+                            </td>
+                            <td style="text-align: right; color: #dc2626;">&#8369;@Model.GrandTotalExpenses.ToString("N2")</td>
+                            <td style="text-align: right; color: #dc2626; font-size: 0.8125rem;">
+                                @if (Model.GrandMonthExpenses > 0)
+                                {
+                                    <span>&#8369;@Model.GrandMonthExpenses.ToString("N2")</span>
+                                }
+                            </td>
+                            <td style="text-align: right; color: #2563eb;">&#8369;@Model.GrandTotalRemaining.ToString("N2")</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+        <!-- Per-Category Detail Cards -->
+        @foreach (var biz in Model.Categories)
+        {
+            var catId = $"cat-{biz.CategoryId}";
+            <div class="main-card category-detail">
+                <div class="cat-header">
+                    <div>
+                        <h5 class="cat-title"><i class="bi bi-shop me-2"></i>@biz.CategoryName</h5>
+                    </div>
+                    <a asp-action="AddFunds" asp-route-id="@biz.CategoryId" class="btn-add-funds">
+                        <i class="bi bi-plus-circle"></i>Add Funds
+                    </a>
+                </div>
+
+                <!-- Progress bar -->
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" style="width: @Math.Min(biz.UsagePercentage, 100)%; background: @(biz.UsagePercentage > 80 ? "#dc2626" : biz.UsagePercentage > 50 ? "#d97706" : "#16a34a");"></div>
+                </div>
+
+                <!-- Category stats -->
+                <div class="cat-stats-row">
+                    <div class="cat-stat funds">
+                        <div class="cat-stat-value" style="color: #16a34a;">+&#8369;@biz.TotalFundsAdded.ToString("N2")</div>
+                        <div class="cat-stat-label">Total Funds Added</div>
+                    </div>
+                    <div class="cat-stat spent">
+                        <div class="cat-stat-value" style="color: #dc2626;">&#8369;@biz.TotalExpenses.ToString("N2")</div>
+                        <div class="cat-stat-label">Total Spent</div>
+                    </div>
+                    <div class="cat-stat remaining">
+                        <div class="cat-stat-value" style="color: #2563eb;">&#8369;@biz.RemainingAmount.ToString("N2")</div>
+                        <div class="cat-stat-label">Remaining</div>
+                    </div>
+                    @if (biz.FundsAddedThisMonth > 0)
+                    {
+                        <div class="cat-stat funds">
+                            <div class="cat-stat-value" style="color: #16a34a;">+&#8369;@biz.FundsAddedThisMonth.ToString("N2")</div>
+                            <div class="cat-stat-label">Sales This Month</div>
+                        </div>
+                    }
+                    @if (biz.SpentThisMonth > 0)
+                    {
+                        <div class="cat-stat spent">
+                            <div class="cat-stat-value" style="color: #dc2626;">&#8369;@biz.SpentThisMonth.ToString("N2")</div>
+                            <div class="cat-stat-label">Spent This Month</div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Tabs for Funds Added / Expenses -->
+                <div class="tabs">
+                    <button type="button" class="tab-btn active" data-tab="@(catId)-funds" onclick="switchTab(this, '@catId')">
+                        <i class="bi bi-plus-circle me-1"></i>Funds Added (@biz.RecentFundEntries.Count)
+                    </button>
+                    <button type="button" class="tab-btn" data-tab="@(catId)-expenses" onclick="switchTab(this, '@catId')">
+                        <i class="bi bi-receipt me-1"></i>Recent Expenses (@biz.RecentExpenseEntries.Count)
+                    </button>
+                </div>
+
+                <!-- Funds Added Tab -->
+                <div class="tab-content active" id="@(catId)-funds">
+                    @if (biz.RecentFundEntries.Any())
+                    {
+                        <table class="detail-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Reason</th>
+                                    <th style="text-align: right;">Amount</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var fund in biz.RecentFundEntries)
+                                {
+                                    <tr>
+                                        <td style="white-space: nowrap;">@fund.Date.ToString("MMM dd, yyyy")</td>
+                                        <td>@fund.Reason</td>
+                                        <td style="text-align: right; color: #16a34a; font-weight: 600;">+&#8369;@fund.Amount.ToString("N2")</td>
+                                        <td style="text-align: center;">
+                                            <a asp-action="EditFunds" asp-route-id="@fund.Id" class="btn btn-action btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center py-3">No funds added yet</p>
+                    }
+                </div>
+
+                <!-- Expenses Tab -->
+                <div class="tab-content" id="@(catId)-expenses">
+                    @if (biz.RecentExpenseEntries.Any())
+                    {
+                        <table class="detail-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Reason</th>
+                                    <th style="text-align: right;">Amount</th>
+                                    <th style="text-align: center;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var exp in biz.RecentExpenseEntries)
+                                {
+                                    <tr>
+                                        <td style="white-space: nowrap;">@exp.Date.ToString("MMM dd, yyyy")</td>
+                                        <td>@exp.Reason</td>
+                                        <td style="text-align: right; color: #dc2626; font-weight: 600;">&#8369;@exp.Amount.ToString("N2")</td>
+                                        <td style="text-align: center;">
+                                            <a asp-action="Edit" asp-route-id="@exp.Id" class="btn btn-action btn-sm btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center py-3">No expenses recorded yet</p>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function switchTab(clickedBtn, catId) {
+            // Deactivate all tabs in this category
+            var container = clickedBtn.closest('.main-card');
+            container.querySelectorAll('.tab-btn').forEach(function(btn) { btn.classList.remove('active'); });
+            container.querySelectorAll('.tab-content').forEach(function(tab) { tab.classList.remove('active'); });
+
+            // Activate clicked tab
+            clickedBtn.classList.add('active');
+            var targetId = clickedBtn.getAttribute('data-tab');
+            document.getElementById(targetId).classList.add('active');
+        }
+    </script>
+}

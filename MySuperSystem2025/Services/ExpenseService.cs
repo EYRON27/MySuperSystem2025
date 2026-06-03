@@ -1,4 +1,4 @@
-﻿using MySuperSystem2025.Models.Domain;
+using MySuperSystem2025.Models.Domain;
 using MySuperSystem2025.Models.ViewModels.Expense;
 using MySuperSystem2025.Repositories.Interfaces;
 using MySuperSystem2025.Services.Interfaces;
@@ -34,11 +34,14 @@ namespace MySuperSystem2025.Services
             if (category.MonthlyFixedBudget > 0) return; // not a one-time budget
             if (category.BudgetAmount <= 0) return; // no budget set
 
+            var totalFundsAdded = category.Expenses.Where(e => !e.IsDeleted && e.Amount < 0).Sum(e => -e.Amount);
+            var budget = totalFundsAdded > 0 ? totalFundsAdded : category.BudgetAmount;
+
             var totalSpent = category.Expenses
                 .Where(e => !e.IsDeleted && e.Amount > 0)
                 .Sum(e => e.Amount);
 
-            category.RemainingAmount = category.BudgetAmount - totalSpent;
+            category.RemainingAmount = budget - totalSpent;
             if (category.RemainingAmount < 0)
                 category.RemainingAmount = 0;
 
@@ -52,10 +55,14 @@ namespace MySuperSystem2025.Services
         private static decimal CalcOneTimeRemaining(ExpenseCategory category)
         {
             if (category.BudgetAmount <= 0) return 0;
+            
+            var totalFundsAdded = category.Expenses.Where(e => !e.IsDeleted && e.Amount < 0).Sum(e => -e.Amount);
+            var budget = totalFundsAdded > 0 ? totalFundsAdded : category.BudgetAmount;
+
             var totalSpent = category.Expenses
                 .Where(e => !e.IsDeleted && e.Amount > 0)
                 .Sum(e => e.Amount);
-            var remaining = category.BudgetAmount - totalSpent;
+            var remaining = budget - totalSpent;
             return remaining > 0 ? remaining : 0;
         }
 
@@ -167,13 +174,14 @@ namespace MySuperSystem2025.Services
             // Generate available months (from December 2025 to current)
             var availableMonths = GenerateAvailableMonths(selectedMonth);
 
-            // Calculate totals for selected month — only ACTIVE monthly budget categories
-            // Include rollover from previous month in the budget total
+            // Calculate totals for selected month — include monthly budget categories (active or paused)
+            // This ensures paused monthly-budget categories still show their allocated money on the dashboard
             var selectedMonthTotal = selectedMonthExpenses.Sum(e => e.Amount);
-            
+
             var prevFilterMonthStart = filterStartDate.AddMonths(-1);
             decimal totalMonthlyFixedBudget = 0;
-            var activeMonthlyCats = categoriesList.Where(c => c.MonthlyFixedBudget > 0 && c.IsBudgetActive).ToList();
+            // include monthly-budget categories regardless of IsBudgetActive so paused budgets still display their amounts
+            var activeMonthlyCats = categoriesList.Where(c => c.MonthlyFixedBudget > 0).ToList();
             foreach (var cat in activeMonthlyCats)
             {
                 decimal rollover = 0;
@@ -189,7 +197,7 @@ namespace MySuperSystem2025.Services
                 totalMonthlyFixedBudget += cat.MonthlyFixedBudget + rollover;
             }
             
-            // Only count expenses from ACTIVE MONTHLY budget categories for the remaining calculation
+            // Count expenses from all monthly budget categories (active or paused) for the remaining calculation
             var monthlyCategoryIds = activeMonthlyCats
                 .Select(c => c.Id)
                 .ToHashSet();
@@ -199,7 +207,8 @@ namespace MySuperSystem2025.Services
             var selectedMonthRemaining = totalMonthlyFixedBudget - monthlyBudgetSpentThisMonth;
 
             // Calculate accumulated savings from PAST months (monthly budget categories only)
-            var monthlyCategoriesList = categoriesList.Where(c => c.MonthlyFixedBudget > 0 && c.IsBudgetActive).ToList();
+            // include paused categories so their historical savings are visible on the dashboard
+            var monthlyCategoriesList = categoriesList.Where(c => c.MonthlyFixedBudget > 0).ToList();
             decimal totalMonthlySavings = 0;
 
             if (monthlyCategoriesList.Any())
@@ -304,6 +313,15 @@ namespace MySuperSystem2025.Services
                     .Where(e => e.CategoryId == c.Id && e.Amount > 0 && e.Date >= startOfMonth && e.Date <= endOfMonth)
                     .Sum(e => e.Amount);
                 
+                // Calculate total funds added (negative amounts = funds added)
+                var totalFundsAdded = allExpenses
+                    .Where(e => e.CategoryId == c.Id && e.Amount < 0)
+                    .Sum(e => -e.Amount); // flip to positive
+
+                var fundsAddedThisMonth = allExpenses
+                    .Where(e => e.CategoryId == c.Id && e.Amount < 0 && e.Date >= startOfMonth && e.Date <= endOfMonth)
+                    .Sum(e => -e.Amount);
+
                 decimal budget;
                 decimal remaining;
                 decimal totalExpensesForBudget;
@@ -332,9 +350,10 @@ namespace MySuperSystem2025.Services
                 }
                 else
                 {
-                    // One-time budget: use stored BudgetAmount as-is (set by user via EditCategory/AddFunds)
-                    // Dynamically calculate remaining = BudgetAmount - all positive expenses
-                    budget = c.BudgetAmount;
+                    // One-time budget: prefer authoritative total from funds-added audit entries
+                    // (negative expense entries). Fall back to stored BudgetAmount if none exist.
+                    var totalFundsAddedForCategory = totalFundsAdded;
+                    budget = totalFundsAddedForCategory > 0 ? totalFundsAddedForCategory : c.BudgetAmount;
                     totalExpensesForBudget = allExpenses
                         .Where(e => e.CategoryId == c.Id && e.Amount > 0)
                         .Sum(e => e.Amount);
@@ -351,7 +370,9 @@ namespace MySuperSystem2025.Services
                     IsBudgetActive = c.IsBudgetActive,
                     SpentThisMonth = spentThisMonth,
                     TotalExpenses = totalExpensesForBudget,
-                    IsHidden = c.IsHidden
+                    IsHidden = c.IsHidden,
+                    TotalFundsAdded = totalFundsAdded,
+                    FundsAddedThisMonth = fundsAddedThisMonth
                 };
             }).ToList();
         }
@@ -834,7 +855,8 @@ namespace MySuperSystem2025.Services
                 }
                 else if (c.BudgetAmount > 0)
                 {
-                    effectiveBudget = c.BudgetAmount;
+                    var totalFundsAdded = allExpenses.Where(e => e.CategoryId == c.Id && e.Amount < 0).Sum(e => -e.Amount);
+                    effectiveBudget = totalFundsAdded > 0 ? totalFundsAdded : c.BudgetAmount;
                     var totalExpenses = allExpenses
                         .Where(e => e.CategoryId == c.Id && e.Amount > 0)
                         .Sum(e => e.Amount);
@@ -905,7 +927,8 @@ namespace MySuperSystem2025.Services
             }
             else
             {
-                budget = category.BudgetAmount;
+                var totalFundsAdded = category.Expenses.Where(e => !e.IsDeleted && e.Amount < 0).Sum(e => -e.Amount);
+                budget = totalFundsAdded > 0 ? totalFundsAdded : category.BudgetAmount;
                 totalExpenses = category.Expenses
                     .Where(e => !e.IsDeleted && e.Amount > 0)
                     .Sum(e => e.Amount);
@@ -968,7 +991,8 @@ namespace MySuperSystem2025.Services
             }
             else
             {
-                budget = category.BudgetAmount;
+                var totalFundsAdded = category.Expenses.Where(e => !e.IsDeleted && e.Amount < 0).Sum(e => -e.Amount);
+                budget = totalFundsAdded > 0 ? totalFundsAdded : category.BudgetAmount;
                 totalExpenses = category.Expenses
                     .Where(e => !e.IsDeleted && e.Amount > 0)
                     .Sum(e => e.Amount);
@@ -1078,16 +1102,18 @@ namespace MySuperSystem2025.Services
                         totalExpenses = category.Expenses
                             .Where(e => !e.IsDeleted && e.Amount > 0 && e.Date >= startOfMonth && e.Date < startOfMonth.AddMonths(1))
                             .Sum(e => e.Amount);
+                        category.RemainingAmount = newBudget - totalExpenses;
                     }
                     else
                     {
                         // One-time/manual budget: calculate from ALL actual expenses (exclude funds-added)
+                        var totalFundsAdded = category.Expenses.Where(e => !e.IsDeleted && e.Amount < 0).Sum(e => -e.Amount);
+                        var activeBudget = totalFundsAdded > 0 ? totalFundsAdded : newBudget;
                         totalExpenses = category.Expenses
                             .Where(e => !e.IsDeleted && e.Amount > 0)
                             .Sum(e => e.Amount);
+                        category.RemainingAmount = activeBudget - totalExpenses;
                     }
-                    
-                    category.RemainingAmount = newBudget - totalExpenses;
                     
                     // Clamp to 0 for display (don't show negative)
                     if (category.RemainingAmount < 0)
@@ -1423,6 +1449,110 @@ namespace MySuperSystem2025.Services
                 _logger.LogError(ex, "Error toggling IsHidden for category {CategoryId} for user {UserId}", categoryId, userId);
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Gets business money summary for one-time budget categories that have funds added.
+        /// Includes per-category breakdown with individual fund/expense entries.
+        /// </summary>
+        public async Task<BusinessSummaryViewModel> GetBusinessSummaryAsync(string userId, string? selectedMonth = null)
+        {
+            var today = DateTime.Today;
+            int filterYear = today.Year;
+            int filterMonth = today.Month;
+
+            if (!string.IsNullOrEmpty(selectedMonth) && selectedMonth.Contains('-'))
+            {
+                var parts = selectedMonth.Split('-');
+                if (parts.Length == 2 && int.TryParse(parts[0], out var y) && int.TryParse(parts[1], out var m))
+                {
+                    filterYear = y;
+                    filterMonth = m;
+                }
+            }
+
+            var startOfMonth = new DateTime(filterYear, filterMonth, 1);
+            var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
+
+            var categories = (await _unitOfWork.ExpenseCategories.GetUserCategoriesAsync(userId)).ToList();
+            var allExpenses = (await _unitOfWork.Expenses.GetUserExpensesAsync(userId)).ToList();
+
+            // Only one-time budget categories that have at least one funds-added entry
+            var bizCategories = categories
+                .Where(c => c.MonthlyFixedBudget == 0 && c.BudgetAmount > 0)
+                .ToList();
+
+            var result = new List<BusinessCategoryViewModel>();
+
+            foreach (var c in bizCategories)
+            {
+                var catExpenses = allExpenses.Where(e => e.CategoryId == c.Id).ToList();
+
+                var totalFundsAdded = catExpenses.Where(e => e.Amount < 0).Sum(e => -e.Amount);
+                if (totalFundsAdded == 0) continue; // skip categories with no funds added
+
+                var totalExpenses = catExpenses.Where(e => e.Amount > 0).Sum(e => e.Amount);
+                var fundsThisMonth = catExpenses.Where(e => e.Amount < 0 && e.Date >= startOfMonth && e.Date <= endOfMonth).Sum(e => -e.Amount);
+                var spentThisMonth = catExpenses.Where(e => e.Amount > 0 && e.Date >= startOfMonth && e.Date <= endOfMonth).Sum(e => e.Amount);
+                // Use actual funds added (audit negative expense entries) to compute remaining
+                // This avoids relying on `c.BudgetAmount` which may be out of sync with recorded fund entries
+                var remaining = totalFundsAdded - totalExpenses;
+
+                var recentFunds = catExpenses
+                    .Where(e => e.Amount < 0)
+                    .OrderByDescending(e => e.Date)
+                    .Select(e => new FundEntryViewModel
+                    {
+                        Id = e.Id,
+                        Amount = -e.Amount,
+                        Date = e.Date,
+                        Reason = e.Reason.Replace("[FUNDS ADDED] ", "")
+                    })
+                    .ToList();
+
+                var recentExpenses = catExpenses
+                    .Where(e => e.Amount > 0)
+                    .OrderByDescending(e => e.Date)
+                    .Take(20)
+                    .Select(e => new ExpenseEntryViewModel
+                    {
+                        Id = e.Id,
+                        Amount = e.Amount,
+                        Date = e.Date,
+                        Reason = e.Reason
+                    })
+                    .ToList();
+
+                result.Add(new BusinessCategoryViewModel
+                {
+                    CategoryId = c.Id,
+                    CategoryName = c.Name,
+                    // BudgetAmount for business categories should represent total funds added (audit trail)
+                    BudgetAmount = totalFundsAdded,
+                    RemainingAmount = remaining > 0 ? remaining : 0,
+                    TotalFundsAdded = totalFundsAdded,
+                    TotalExpenses = totalExpenses,
+                    FundsAddedThisMonth = fundsThisMonth,
+                    SpentThisMonth = spentThisMonth,
+                    RecentFundEntries = recentFunds,
+                    RecentExpenseEntries = recentExpenses
+                });
+            }
+
+            var availableMonths = GenerateAvailableMonths(selectedMonth);
+
+            return new BusinessSummaryViewModel
+            {
+                Categories = result.OrderByDescending(c => c.TotalFundsAdded).ToList(),
+                GrandTotalFundsAdded = result.Sum(c => c.TotalFundsAdded),
+                GrandTotalExpenses = result.Sum(c => c.TotalExpenses),
+                GrandTotalRemaining = result.Sum(c => c.RemainingAmount),
+                GrandMonthFundsAdded = result.Sum(c => c.FundsAddedThisMonth),
+                GrandMonthExpenses = result.Sum(c => c.SpentThisMonth),
+                SelectedMonth = selectedMonth ?? $"{today.Year}-{today.Month:D2}",
+                AvailableMonths = availableMonths,
+                SelectedMonthDisplay = new DateTime(filterYear, filterMonth, 1).ToString("MMMM yyyy")
+            };
         }
 
         private static ExpenseListItemViewModel MapToListItem(Expense expense)

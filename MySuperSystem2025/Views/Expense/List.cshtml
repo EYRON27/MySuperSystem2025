@@ -1,6 +1,18 @@
 @model MySuperSystem2025.Models.ViewModels.Expense.ExpenseListViewModel
 @{
     ViewData["Title"] = "All Expenses";
+
+    // Pre-compute chart data for the scripts section
+    var chartExpensesAll = Model.Expenses.Where(e => e.Amount > 0).ToList();
+    var chartGroupsAll = chartExpensesAll
+        .GroupBy(e => e.CategoryName)
+        .Select(g => new { Name = g.Key, Total = g.Sum(e => e.Amount), Count = g.Count() })
+        .OrderByDescending(g => g.Total)
+        .ToList();
+    var chartTotalAll = chartGroupsAll.Sum(g => g.Total);
+    ViewData["ChartLabels"] = string.Join(",", chartGroupsAll.Select(g => "\"" + g.Name.Replace("\"", "\\\"") + "\""));
+    ViewData["ChartAmounts"] = string.Join(",", chartGroupsAll.Select(g => g.Total.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)));
+    ViewData["ChartPercents"] = string.Join(",", chartGroupsAll.Select(g => (chartTotalAll > 0 ? Math.Round((g.Total / chartTotalAll) * 100, 1) : 0).ToString("F1", System.Globalization.CultureInfo.InvariantCulture)));
 }
 
 <style>
@@ -148,6 +160,28 @@
     .btn-action.btn-sm i {
         font-size: 0.875rem;
     }
+    
+    /* Chart styles */
+    .btn-graph { padding: 0.375rem 0.75rem; font-size: 0.8125rem; border: 1px solid #e5e7eb; background: white; border-radius: 6px; color: #6c757d; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.375rem; cursor: pointer; white-space: nowrap; }
+    .btn-graph:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; }
+    .btn-graph.active { background: #2563eb; border-color: #2563eb; color: white; }
+    .chart-container { display: none; margin-bottom: 1.5rem; padding: 1.5rem; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; }
+    .chart-container.show { display: block; }
+    .chart-wrapper { position: relative; height: 300px; width: 100%; }
+    .chart-type-btns { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+    .chart-type-btn { padding: 0.5rem 1rem; border: 1px solid #e5e7eb; background: white; border-radius: 6px; font-size: 0.8125rem; color: #6c757d; cursor: pointer; transition: all 0.2s ease; }
+    .chart-type-btn:hover { border-color: #2563eb; color: #2563eb; }
+    .chart-type-btn.active { background: #2563eb; border-color: #2563eb; color: white; }
+    .category-breakdown-list { list-style: none; padding: 0; margin: 0; }
+    .category-breakdown-item { padding: 0.75rem 0; border-bottom: 1px solid #f3f4f6; }
+    .category-breakdown-item:last-child { border-bottom: none; }
+    .breakdown-progress { height: 6px; background: #f3f4f6; border-radius: 3px; overflow: hidden; margin: 0.375rem 0; }
+    .breakdown-progress-bar { height: 100%; background: #2563eb; transition: width 0.3s ease; border-radius: 3px; }
+    .breakdown-collapsible { display: none; }
+    .breakdown-collapsible.show { display: block; }
+    .btn-breakdown-toggle { padding: 0.5rem 1rem; font-size: 0.8125rem; border: 1px solid #e5e7eb; background: white; border-radius: 6px; color: #6c757d; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.375rem; cursor: pointer; white-space: nowrap; text-decoration: none; }
+    .btn-breakdown-toggle:hover { border-color: #2563eb; color: #2563eb; background: #eff6ff; text-decoration: none; }
+    .btn-breakdown-toggle.active { background: #2563eb; border-color: #2563eb; color: white; }
 </style>
 
 <div class="expense-list">
@@ -206,6 +240,63 @@
         <i class="bi bi-info-circle me-2"></i>
         Showing <strong>@Model.TotalCount</strong> expenses totaling <strong>&#8369;@Model.TotalAmount.ToString("N2")</strong>
     </div>
+
+    <!-- Chart Section -->
+    @{
+        var chartExpenses = Model.Expenses.Where(e => e.Amount > 0).ToList();
+        var chartGroups = chartExpenses
+            .GroupBy(e => e.CategoryName)
+            .Select(g => new { Name = g.Key, Total = g.Sum(e => e.Amount), Count = g.Count() })
+            .OrderByDescending(g => g.Total)
+            .ToList();
+        var chartTotal = chartGroups.Sum(g => g.Total);
+    }
+    @if (chartExpenses.Any())
+    {
+        <div style="margin-bottom: 1.5rem; display: flex; gap: 0.75rem; align-items: center;">
+            <button type="button" class="btn-breakdown-toggle" id="toggleBreakdownBtn">
+                <i class="bi bi-pie-chart-fill"></i><span>Show Breakdown</span> <span class="badge bg-secondary" style="font-size: 0.7rem;">@chartGroups.Count categories</span>
+            </button>
+        </div>
+
+        <div class="breakdown-collapsible" id="breakdownSection">
+            <div class="main-card" style="margin-bottom: 1.5rem;">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="bi bi-pie-chart-fill me-2"></i>Expense Breakdown by Category</h5>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button type="button" class="btn-graph" id="toggleChartBtn">
+                            <i class="bi bi-bar-chart-fill"></i><span>View Graph</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="chart-container" id="chartContainer">
+                    <div class="chart-type-btns">
+                        <button type="button" class="chart-type-btn active" data-type="doughnut"><i class="bi bi-pie-chart-fill me-1"></i>Donut</button>
+                        <button type="button" class="chart-type-btn" data-type="bar"><i class="bi bi-bar-chart-fill me-1"></i>Bar</button>
+                    </div>
+                    <div class="chart-wrapper">
+                        <canvas id="expenseListChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Category breakdown list -->
+                <ul class="category-breakdown-list" id="categoryBreakdownList">
+                    @foreach (var group in chartGroups)
+                    {
+                        var pct = chartTotal > 0 ? Math.Round((group.Total / chartTotal) * 100, 1) : 0;
+                        <li class="category-breakdown-item">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span style="font-weight: 500; color: #1a1a1a;">@group.Name</span>
+                                <span style="font-weight: 600; color: #1a1a1a;">&#8369;@group.Total.ToString("N2")</span>
+                            </div>
+                            <div class="breakdown-progress"><div class="breakdown-progress-bar" style="width: @pct%;"></div></div>
+                            <small style="color: #6c757d;">@pct% of total · @group.Count @(group.Count == 1 ? "expense" : "expenses")</small>
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
 
     <!-- Expenses Table -->
     <div class="main-card">
@@ -276,3 +367,98 @@
         }
     </div>
 </div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Breakdown section toggle
+        var breakdownBtn = document.getElementById('toggleBreakdownBtn');
+        var breakdownSection = document.getElementById('breakdownSection');
+        if (breakdownBtn && breakdownSection) {
+            breakdownBtn.onclick = function() {
+                if (breakdownSection.classList.contains('show')) {
+                    breakdownSection.classList.remove('show');
+                    breakdownBtn.classList.remove('active');
+                    breakdownBtn.innerHTML = '<i class="bi bi-pie-chart-fill"></i><span>Show Breakdown</span>';
+                } else {
+                    breakdownSection.classList.add('show');
+                    breakdownBtn.classList.add('active');
+                    breakdownBtn.innerHTML = '<i class="bi bi-x-circle"></i><span>Hide Breakdown</span>';
+                }
+            };
+        }
+
+        // Chart toggle (inside breakdown)
+        var toggleBtn = document.getElementById('toggleChartBtn');
+        var container = document.getElementById('chartContainer');
+        if (!toggleBtn || !container) return;
+
+        var pesoSign = '\u20B1';
+        var labelData = [@Html.Raw(ViewData["ChartLabels"] ?? "")];
+        var amountData = [@Html.Raw(ViewData["ChartAmounts"] ?? "")];
+        var percentData = [@Html.Raw(ViewData["ChartPercents"] ?? "")];
+        var colors = ['#2563eb', '#16a34a', '#dc2626', '#d97706', '#7c3aed', '#0891b2', '#be185d', '#059669', '#ea580c', '#4f46e5', '#6366f1', '#14b8a6', '#f43f5e', '#f59e0b', '#8b5cf6'];
+        var expenseChart = null;
+        var currentType = 'doughnut';
+
+        toggleBtn.onclick = function() {
+            if (container.classList.contains('show')) {
+                container.classList.remove('show');
+                toggleBtn.classList.remove('active');
+                toggleBtn.innerHTML = '<i class="bi bi-bar-chart-fill"></i><span>View Graph</span>';
+            } else {
+                container.classList.add('show');
+                toggleBtn.classList.add('active');
+                toggleBtn.innerHTML = '<i class="bi bi-x-circle"></i><span>Hide Graph</span>';
+                if (!expenseChart) createChart(currentType);
+            }
+        };
+
+        document.querySelectorAll('.chart-type-btn').forEach(function(btn) {
+            btn.onclick = function() {
+                currentType = this.getAttribute('data-type');
+                document.querySelectorAll('.chart-type-btn').forEach(function(b) { b.classList.remove('active'); });
+                this.classList.add('active');
+                createChart(currentType);
+            };
+        });
+
+        function createChart(type) {
+            var canvas = document.getElementById('expenseListChart');
+            if (!canvas) return;
+            if (expenseChart) expenseChart.destroy();
+            expenseChart = new Chart(canvas.getContext('2d'), {
+                type: type,
+                data: {
+                    labels: labelData,
+                    datasets: [{
+                        label: 'Expenses',
+                        data: amountData,
+                        backgroundColor: colors.slice(0, labelData.length),
+                        borderColor: type === 'bar' ? colors.slice(0, labelData.length) : '#fff',
+                        borderWidth: type === 'bar' ? 0 : 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: type === 'bar' ? 'top' : 'right' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(ctx) {
+                                    var v = ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed;
+                                    return pesoSign + v.toLocaleString('en-PH', {minimumFractionDigits: 2}) + ' (' + percentData[ctx.dataIndex] + '%)';
+                                }
+                            }
+                        }
+                    },
+                    scales: type === 'bar' ? { y: { beginAtZero: true, ticks: { callback: function(v) { return pesoSign + v.toLocaleString(); } } } } : {},
+                    cutout: type === 'doughnut' ? '50%' : 0
+                }
+            });
+        }
+    });
+    </script>
+}

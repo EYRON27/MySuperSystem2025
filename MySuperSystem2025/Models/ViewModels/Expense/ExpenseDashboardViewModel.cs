@@ -185,6 +185,17 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         /// </summary>
         public decimal TotalExpenses { get; set; }
         
+        /// <summary>
+        /// Total funds added (sales/income) to this category all-time.
+        /// Calculated from negative expense entries (funds-added audit trail).
+        /// </summary>
+        public decimal TotalFundsAdded { get; set; }
+
+        /// <summary>
+        /// Total funds added in the selected/current month only.
+        /// </summary>
+        public decimal FundsAddedThisMonth { get; set; }
+        
         public decimal UsagePercentage => BudgetAmount > 0 ? Math.Round((TotalExpenses / BudgetAmount) * 100, 1) : 0;
         public bool IsLowBalance => HasMonthlyBudget && !IsPaused && BudgetAmount > 0 && RemainingAmount <= (BudgetAmount * 0.2m);
         public bool HasBudget => BudgetAmount > 0;
@@ -195,6 +206,86 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         /// Whether this category is hidden from dashboard and dropdowns
         /// </summary>
         public bool IsHidden { get; set; }
+    }
+
+    /// <summary>
+    /// View model for the Business Money Summary dedicated page
+    /// </summary>
+    public class BusinessSummaryViewModel
+    {
+        public List<BusinessCategoryViewModel> Categories { get; set; } = new();
+
+        /// <summary>
+        /// Grand totals across all business categories
+        /// </summary>
+        public decimal GrandTotalFundsAdded { get; set; }
+        public decimal GrandTotalExpenses { get; set; }
+        public decimal GrandTotalRemaining { get; set; }
+        public decimal GrandMonthFundsAdded { get; set; }
+        public decimal GrandMonthExpenses { get; set; }
+
+        /// <summary>
+        /// Selected month for filtering (format: "yyyy-MM")
+        /// </summary>
+        public string? SelectedMonth { get; set; }
+
+        /// <summary>
+        /// Available months for dropdown
+        /// </summary>
+        public List<MonthOption> AvailableMonths { get; set; } = new();
+
+        /// <summary>
+        /// Display name for selected month
+        /// </summary>
+        public string SelectedMonthDisplay { get; set; } = "Current Month";
+    }
+
+    /// <summary>
+    /// Per-category business data
+    /// </summary>
+    public class BusinessCategoryViewModel
+    {
+        public int CategoryId { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public decimal BudgetAmount { get; set; }
+        public decimal RemainingAmount { get; set; }
+        public decimal TotalFundsAdded { get; set; }
+        public decimal TotalExpenses { get; set; }
+        public decimal FundsAddedThisMonth { get; set; }
+        public decimal SpentThisMonth { get; set; }
+        public decimal UsagePercentage => BudgetAmount > 0 ? Math.Round((TotalExpenses / BudgetAmount) * 100, 1) : 0;
+
+        /// <summary>
+        /// Individual fund entries for this category (for the detail table)
+        /// </summary>
+        public List<FundEntryViewModel> RecentFundEntries { get; set; } = new();
+
+        /// <summary>
+        /// Individual expense entries for this category (for the detail table)
+        /// </summary>
+        public List<ExpenseEntryViewModel> RecentExpenseEntries { get; set; } = new();
+    }
+
+    /// <summary>
+    /// A single fund-added entry
+    /// </summary>
+    public class FundEntryViewModel
+    {
+        public int Id { get; set; }
+        public decimal Amount { get; set; }
+        public DateTime Date { get; set; }
+        public string Reason { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// A single expense entry
+    /// </summary>
+    public class ExpenseEntryViewModel
+    {
+        public int Id { get; set; }
+        public decimal Amount { get; set; }
+        public DateTime Date { get; set; }
+        public string Reason { get; set; } = string.Empty;
     }
 }
 
