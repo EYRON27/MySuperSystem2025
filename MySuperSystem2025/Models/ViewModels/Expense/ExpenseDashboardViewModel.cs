@@ -206,6 +206,11 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         /// Whether this category is hidden from dashboard and dropdowns
         /// </summary>
         public bool IsHidden { get; set; }
+
+        /// <summary>
+        /// Whether this category has rollover savings enabled
+        /// </summary>
+        public bool RolloverEnabled { get; set; }
     }
 
     /// <summary>
