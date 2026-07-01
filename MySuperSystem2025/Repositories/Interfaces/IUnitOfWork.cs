@@ -14,6 +14,7 @@ namespace MySuperSystem2025.Repositories.Interfaces
         ITimeEntryRepository TimeEntries { get; }
         ITimeCategoryRepository TimeCategories { get; }
         IFoodEntryRepository FoodEntries { get; }
+        IMonthlyBudgetHistoryRepository MonthlyBudgetHistories { get; }
 
         Task<int> SaveChangesAsync();
     }

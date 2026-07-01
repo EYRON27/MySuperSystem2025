@@ -179,23 +179,14 @@ namespace MySuperSystem2025.Services
             var selectedMonthTotal = selectedMonthExpenses.Sum(e => e.Amount);
 
             var prevFilterMonthStart = filterStartDate.AddMonths(-1);
-            decimal totalMonthlyFixedBudget = 0;
+            
             // include monthly-budget categories regardless of IsBudgetActive so paused budgets still display their amounts
             var activeMonthlyCats = categoriesList.Where(c => c.MonthlyFixedBudget > 0).ToList();
-            foreach (var cat in activeMonthlyCats)
-            {
-                decimal rollover = 0;
-                if (cat.RolloverEnabled && prevFilterMonthStart >= BudgetStartDate)
-                {
-                    var prevEnd = prevFilterMonthStart.AddMonths(1).AddDays(-1);
-                    var prevSpent = actualExpenses
-                        .Where(e => e.CategoryId == cat.Id && e.Date >= prevFilterMonthStart && e.Date <= prevEnd)
-                        .Sum(e => e.Amount);
-                    var leftover = cat.MonthlyFixedBudget - prevSpent;
-                    if (leftover > 0) rollover = leftover;
-                }
-                totalMonthlyFixedBudget += cat.MonthlyFixedBudget + rollover;
-            }
+            
+            // Total budget is already computed correctly in categoryBalances (with historical configurations)
+            decimal totalMonthlyFixedBudget = categoryBalances
+                .Where(c => c.HasMonthlyBudget)
+                .Sum(c => c.BudgetAmount);
             
             // Count expenses from all monthly budget categories (active or paused) for the remaining calculation
             var monthlyCategoryIds = activeMonthlyCats
@@ -215,6 +206,11 @@ namespace MySuperSystem2025.Services
             {
                 var savingsDate = BudgetStartDate;
                 var selectedMonthStart = new DateTime(filterYear, filterMonth, 1);
+                
+                // Fetch all past histories to get accurate base budgets for past savings
+                var allPastHistories = await _unitOfWork.MonthlyBudgetHistories
+                    .FindAsync(h => h.UserId == userId && (h.Year < filterYear || (h.Year == filterYear && h.Month < filterMonth)));
+                var pastHistoryDict = allPastHistories.ToDictionary(h => $"{h.CategoryId}-{h.Year}-{h.Month}");
 
                 while (savingsDate < selectedMonthStart)
                 {
@@ -223,11 +219,17 @@ namespace MySuperSystem2025.Services
 
                     foreach (var cat in monthlyCategoriesList)
                     {
+                        decimal baseBudget = cat.MonthlyFixedBudget;
+                        if (pastHistoryDict.TryGetValue($"{cat.Id}-{savingsDate.Year}-{savingsDate.Month}", out var history))
+                        {
+                            baseBudget = history.BaseBudget;
+                        }
+
                         var spentInMonth = actualExpenses
                             .Where(e => e.CategoryId == cat.Id && e.Date >= monthStart && e.Date <= monthEnd)
                             .Sum(e => e.Amount);
 
-                        var savedThisMonth = cat.MonthlyFixedBudget - spentInMonth;
+                        var savedThisMonth = baseBudget - spentInMonth;
                         if (savedThisMonth > 0)
                         {
                             totalMonthlySavings += savedThisMonth;
@@ -307,6 +309,9 @@ namespace MySuperSystem2025.Services
             var startOfMonth = new DateTime(year, month, 1);
             var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
 
+            var histories = await _unitOfWork.MonthlyBudgetHistories.GetHistoriesForMonthAsync(userId, year, month);
+            var historyDict = histories.ToDictionary(h => h.CategoryId);
+
             return categories.Select(c =>
             {
                 var spentThisMonth = allExpenses
@@ -328,25 +333,43 @@ namespace MySuperSystem2025.Services
                 
                 if (c.MonthlyFixedBudget > 0)
                 {
+                    decimal baseBudget = c.MonthlyFixedBudget;
                     decimal rollover = 0;
-                    if (c.RolloverEnabled)
+                    bool isBudgetActive = c.IsBudgetActive;
+
+                    if (historyDict.TryGetValue(c.Id, out var history))
                     {
-                        var prevMonthStart = startOfMonth.AddMonths(-1);
-                        if (prevMonthStart >= BudgetStartDate)
+                        baseBudget = history.BaseBudget;
+                        rollover = history.RolloverAmount;
+                        isBudgetActive = history.IsBudgetActive;
+                    }
+                    else
+                    {
+                        // Fallback behavior: dynamically calculate if no history is recorded
+                        if (c.RolloverEnabled)
                         {
-                            var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
-                            var prevSpent = allExpenses
-                                .Where(e => e.CategoryId == c.Id && e.Amount > 0 && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
-                                .Sum(e => e.Amount);
-                            var prevLeftover = c.MonthlyFixedBudget - prevSpent;
-                            if (prevLeftover > 0)
-                                rollover = prevLeftover;
+                            var prevMonthStart = startOfMonth.AddMonths(-1);
+                            if (prevMonthStart >= BudgetStartDate)
+                            {
+                                var prevMonthEnd = prevMonthStart.AddMonths(1).AddDays(-1);
+                                var prevSpent = allExpenses
+                                    .Where(e => e.CategoryId == c.Id && e.Amount > 0 && e.Date >= prevMonthStart && e.Date <= prevMonthEnd)
+                                    .Sum(e => e.Amount);
+                                var prevLeftover = c.MonthlyFixedBudget - prevSpent;
+                                if (prevLeftover > 0)
+                                    rollover = prevLeftover;
+                            }
                         }
                     }
 
-                    budget = c.MonthlyFixedBudget + rollover;
+                    budget = baseBudget + rollover;
                     totalExpensesForBudget = spentThisMonth;
                     remaining = budget - spentThisMonth;
+                    
+                    // We also override the viewmodel's MonthlyFixedBudget and IsBudgetActive
+                    // with the historical values so the dashboard displays them correctly.
+                    c.MonthlyFixedBudget = baseBudget;
+                    c.IsBudgetActive = isBudgetActive;
                 }
                 else
                 {
@@ -429,6 +452,31 @@ namespace MySuperSystem2025.Services
                         category.LastResetMonth = now.Month;
 
                         _unitOfWork.ExpenseCategories.Update(category);
+
+                        // Save historical budget snapshot for the new month
+                        var existingHistory = await _unitOfWork.MonthlyBudgetHistories.GetHistoryAsync(userId, category.Id, now.Year, now.Month);
+                        if (existingHistory == null)
+                        {
+                            var history = new MonthlyBudgetHistory
+                            {
+                                CategoryId = category.Id,
+                                UserId = userId,
+                                Year = now.Year,
+                                Month = now.Month,
+                                BaseBudget = category.MonthlyFixedBudget,
+                                RolloverAmount = rollover,
+                                IsBudgetActive = category.IsBudgetActive
+                            };
+                            await _unitOfWork.MonthlyBudgetHistories.AddAsync(history);
+                        }
+                        else
+                        {
+                            existingHistory.BaseBudget = category.MonthlyFixedBudget;
+                            existingHistory.RolloverAmount = rollover;
+                            existingHistory.IsBudgetActive = category.IsBudgetActive;
+                            _unitOfWork.MonthlyBudgetHistories.Update(existingHistory);
+                        }
+
                         needsSave = true;
 
                         _logger.LogInformation(
@@ -1146,6 +1194,42 @@ namespace MySuperSystem2025.Services
                 {
                     category.LastResetYear = now.Year;
                     category.LastResetMonth = now.Month;
+
+                    // Also update/create the historical budget snapshot for the current month
+                    var existingHistory = await _unitOfWork.MonthlyBudgetHistories.GetHistoryAsync(userId, category.Id, now.Year, now.Month);
+                    
+                    // For rollover, calculate it dynamically once or use existing BudgetAmount vs MonthlyFixedBudget difference
+                    decimal currentRollover = 0;
+                    if (category.BudgetAmount > category.MonthlyFixedBudget)
+                    {
+                        currentRollover = category.BudgetAmount - category.MonthlyFixedBudget;
+                    }
+
+                    if (existingHistory == null)
+                    {
+                        var history = new MonthlyBudgetHistory
+                        {
+                            CategoryId = category.Id,
+                            UserId = userId,
+                            Year = now.Year,
+                            Month = now.Month,
+                            BaseBudget = category.MonthlyFixedBudget,
+                            RolloverAmount = currentRollover,
+                            IsBudgetActive = category.IsBudgetActive
+                        };
+                        await _unitOfWork.MonthlyBudgetHistories.AddAsync(history);
+                    }
+                    else
+                    {
+                        existingHistory.BaseBudget = category.MonthlyFixedBudget;
+                        // Keep the existing rollover if the budget amount wasn't completely cleared
+                        if (!category.RolloverEnabled)
+                        {
+                            existingHistory.RolloverAmount = 0;
+                        }
+                        existingHistory.IsBudgetActive = category.IsBudgetActive;
+                        _unitOfWork.MonthlyBudgetHistories.Update(existingHistory);
+                    }
                 }
 
                 _unitOfWork.ExpenseCategories.Update(category);

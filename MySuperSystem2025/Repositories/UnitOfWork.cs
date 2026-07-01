@@ -17,6 +17,7 @@ namespace MySuperSystem2025.Repositories
         private ITimeEntryRepository? _timeEntries;
         private ITimeCategoryRepository? _timeCategories;
         private IFoodEntryRepository? _foodEntries;
+        private IMonthlyBudgetHistoryRepository? _monthlyBudgetHistories;
 
         public UnitOfWork(ApplicationDbContext context)
         {
@@ -46,6 +47,9 @@ namespace MySuperSystem2025.Repositories
 
         public IFoodEntryRepository FoodEntries => 
             _foodEntries ??= new FoodEntryRepository(_context);
+
+        public IMonthlyBudgetHistoryRepository MonthlyBudgetHistories =>
+            _monthlyBudgetHistories ??= new MonthlyBudgetHistoryRepository(_context);
 
         public async Task<int> SaveChangesAsync()
         {

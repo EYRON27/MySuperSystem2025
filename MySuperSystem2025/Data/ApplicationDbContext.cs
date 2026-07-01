@@ -18,6 +18,7 @@ namespace MySuperSystem2025.Data
         // Expense Management
         public DbSet<Expense> Expenses { get; set; }
         public DbSet<ExpenseCategory> ExpenseCategories { get; set; }
+        public DbSet<MonthlyBudgetHistory> MonthlyBudgetHistories { get; set; }
 
         // Task Management
         public DbSet<TaskItem> Tasks { get; set; }
@@ -40,6 +41,7 @@ namespace MySuperSystem2025.Data
             // Configure soft delete query filters
             builder.Entity<Expense>().HasQueryFilter(e => !e.IsDeleted);
             builder.Entity<ExpenseCategory>().HasQueryFilter(e => !e.IsDeleted);
+            builder.Entity<MonthlyBudgetHistory>().HasQueryFilter(e => !e.IsDeleted);
             builder.Entity<TaskItem>().HasQueryFilter(t => !t.IsDeleted);
             builder.Entity<StoredPassword>().HasQueryFilter(p => !p.IsDeleted);
             builder.Entity<PasswordCategory>().HasQueryFilter(p => !p.IsDeleted);
@@ -74,6 +76,22 @@ namespace MySuperSystem2025.Data
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasIndex(e => new { e.UserId, e.Name }).IsUnique();
+            });
+
+            // Configure relationships for MonthlyBudgetHistory
+            builder.Entity<MonthlyBudgetHistory>(entity =>
+            {
+                entity.HasOne(h => h.User)
+                    .WithMany()
+                    .HasForeignKey(h => h.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(h => h.Category)
+                    .WithMany()
+                    .HasForeignKey(h => h.CategoryId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasIndex(h => new { h.UserId, h.CategoryId, h.Year, h.Month }).IsUnique();
             });
 
             // Configure relationships for TaskItem
