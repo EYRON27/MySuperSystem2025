@@ -1,4 +1,4 @@
-@model MySuperSystem2025.Models.ViewModels.Expense.ExpenseDashboardViewModel
+ï»¿@model MySuperSystem2025.Models.ViewModels.Expense.ExpenseDashboardViewModel
 @{
     ViewData["Title"] = "Expense Dashboard";
     var categoryLabels = string.Join(",", Model.CategoryBreakdown.Select(c => "\"" + c.CategoryName.Replace("\"", "\\\"") + "\""));
@@ -135,15 +135,7 @@
                     {<span>Available to spend</span>}
                 </div>
             </div>
-            @if (Model.TotalMonthlySavings > 0)
-            {
-                <a asp-action="Savings" class="budget-card" style="border-left-color: #7c3aed; text-decoration: none; color: inherit; transition: all 0.2s ease;">
-                    <div class="summary-label"><i class="bi bi-piggy-bank me-1"></i>Total Savings</div>
-                    <div class="summary-value" style="color: #7c3aed;">&#8369;@Model.TotalMonthlySavings.ToString("N2")</div>
-                    <div class="summary-count">Accumulated from past months <i class="bi bi-arrow-right ms-1"></i></div>
-                </a>
-            }
-        </div>
+</div>
     }
 
     <div class="summary-grid">
@@ -218,7 +210,7 @@
                             {
                                 <!-- Paused Monthly Budget -->
                                 <div style="background: #fef3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 0.75rem; font-size: 0.8125rem; color: #664d03; text-align: center;">
-                                    <i class="bi bi-pause-circle me-1"></i>Budget paused — not counting toward monthly totals
+                                    <i class="bi bi-pause-circle me-1"></i>Budget paused â€” not counting toward monthly totals
                                 </div>
                                 <div class="d-flex justify-content-between mt-2" style="font-size: 0.875rem;">
                                     <div>
@@ -303,7 +295,7 @@
                                 <span style="font-weight: 600; color: #1a1a1a;">&#8369;@category.Total.ToString("N2")</span>
                             </div>
                             <div class="category-progress"><div class="category-progress-bar" style="width: @category.Percentage%;"></div></div>
-                            <small style="color: #6c757d;">@category.Percentage% of total · @category.Count @(category.Count == 1 ? "expense" : "expenses")</small>
+                            <small style="color: #6c757d;">@category.Percentage% of total Â· @category.Count @(category.Count == 1 ? "expense" : "expenses")</small>
                         </li>
                     }
                 </ul>
@@ -419,3 +411,5 @@
     });
     </script>
 }
+
+
