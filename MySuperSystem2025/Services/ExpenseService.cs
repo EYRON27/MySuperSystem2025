@@ -605,12 +605,15 @@ namespace MySuperSystem2025.Services
                 }
 
                 // Balance check for ANY category with a budget
-                if (category.BudgetAmount > 0)
+                if (category.BudgetAmount > 0 || category.MonthlyFixedBudget > 0)
                 {
                     decimal currentRemaining;
                     if (category.MonthlyFixedBudget > 0)
                     {
-                        currentRemaining = category.RemainingAmount;
+                        // Use the exact same logic as the dashboard to ensure consistency
+                        var balances = await GetCategoryBalancesForMonthAsync(userId, DateTime.Today.Year, DateTime.Today.Month);
+                        var balance = balances.FirstOrDefault(b => b.CategoryId == category.Id);
+                        currentRemaining = balance?.RemainingAmount ?? 0;
                     }
                     else
                     {
@@ -718,7 +721,10 @@ namespace MySuperSystem2025.Services
                         decimal available;
                         if (newCategory.MonthlyFixedBudget > 0)
                         {
-                            available = newCategory.RemainingAmount;
+                            // Use the exact same logic as the dashboard to ensure consistency
+                            var balances = await GetCategoryBalancesForMonthAsync(userId, DateTime.Today.Year, DateTime.Today.Month);
+                            var balance = balances.FirstOrDefault(b => b.CategoryId == newCategory.Id);
+                            available = balance?.RemainingAmount ?? 0;
                         }
                         else
                         {
@@ -767,7 +773,10 @@ namespace MySuperSystem2025.Services
                         decimal available;
                         if (category.MonthlyFixedBudget > 0)
                         {
-                            available = category.RemainingAmount;
+                            // Use the exact same logic as the dashboard to ensure consistency
+                            var balances = await GetCategoryBalancesForMonthAsync(userId, DateTime.Today.Year, DateTime.Today.Month);
+                            var balance = balances.FirstOrDefault(b => b.CategoryId == category.Id);
+                            available = balance?.RemainingAmount ?? 0;
                         }
                         else
                         {
@@ -1140,14 +1149,27 @@ namespace MySuperSystem2025.Services
                 category.IsBudgetActive = model.IsBudgetActive;
                 category.RolloverEnabled = model.RolloverEnabled;
 
-                // Determine budget amount.
-                // For monthly budgets with rollover DISABLED, always store just the base MonthlyFixedBudget
-                // (strip any previously saved rollover from BudgetAmount).
+                // For monthly budgets, if rollover is enabled, preserve the existing rollover amount.
+                // If rollover is disabled, set BudgetAmount to just the base MonthlyFixedBudget.
                 decimal newBudget;
+                decimal currentRollover = 0;
+                
                 if (model.MonthlyFixedBudget > 0)
                 {
-                    // Monthly budget: if rollover is off, BudgetAmount = base only; if on, keep as-is (reset will inflate it)
-                    newBudget = model.MonthlyFixedBudget;
+                    if (category.RolloverEnabled && category.BudgetAmount > category.MonthlyFixedBudget)
+                    {
+                        currentRollover = category.BudgetAmount - category.MonthlyFixedBudget;
+                    }
+
+                    if (model.RolloverEnabled)
+                    {
+                        newBudget = model.MonthlyFixedBudget + currentRollover;
+                    }
+                    else
+                    {
+                        newBudget = model.MonthlyFixedBudget;
+                        currentRollover = 0;
+                    }
                 }
                 else
                 {
@@ -1198,13 +1220,8 @@ namespace MySuperSystem2025.Services
                     // Also update/create the historical budget snapshot for the current month
                     var existingHistory = await _unitOfWork.MonthlyBudgetHistories.GetHistoryAsync(userId, category.Id, now.Year, now.Month);
                     
-                    // For rollover, calculate it dynamically once or use existing BudgetAmount vs MonthlyFixedBudget difference
-                    decimal currentRollover = 0;
-                    if (category.BudgetAmount > category.MonthlyFixedBudget)
-                    {
-                        currentRollover = category.BudgetAmount - category.MonthlyFixedBudget;
-                    }
-
+                    // Rollover is already calculated above in currentRollover
+                    
                     if (existingHistory == null)
                     {
                         var history = new MonthlyBudgetHistory
