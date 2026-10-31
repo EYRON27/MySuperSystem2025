@@ -21,6 +21,7 @@ namespace MySuperSystem2025.Models.ViewModels.Expense
         public List<ExpenseListItemViewModel> Expenses { get; set; } = new();
         public string? FilterPeriod { get; set; }
         public int? FilterCategoryId { get; set; }
+        public string? FilterSearchTerm { get; set; }
         public DateTime? FilterStartDate { get; set; }
         public DateTime? FilterEndDate { get; set; }
         public decimal TotalAmount { get; set; }

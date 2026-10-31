@@ -35,9 +35,9 @@ namespace MySuperSystem2025.Controllers
         }
 
         // GET: /Expense/List
-        public async Task<IActionResult> List(string? period = null, int? categoryId = null)
+        public async Task<IActionResult> List(string? period = null, int? categoryId = null, string? searchTerm = null)
         {
-            var expenses = await _expenseService.GetExpensesAsync(UserId, period, categoryId);
+            var expenses = await _expenseService.GetExpensesAsync(UserId, period, categoryId, searchTerm: searchTerm);
             return View(expenses);
         }
 

@@ -499,7 +499,7 @@ namespace MySuperSystem2025.Services
         /// <summary>
         /// Gets filtered list of expenses
         /// </summary>
-        public async Task<ExpenseListViewModel> GetExpensesAsync(string userId, string? period = null, int? categoryId = null, DateTime? startDate = null, DateTime? endDate = null)
+        public async Task<ExpenseListViewModel> GetExpensesAsync(string userId, string? period = null, int? categoryId = null, DateTime? startDate = null, DateTime? endDate = null, string? searchTerm = null)
         {
             IEnumerable<Expense> expenses;
             var today = DateTime.Today;
@@ -536,6 +536,15 @@ namespace MySuperSystem2025.Services
                 expenses = expenses.Where(e => e.CategoryId == categoryId.Value);
             }
 
+            // Apply reason search filter if specified
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var normalizedSearch = searchTerm.Trim();
+                expenses = expenses.Where(e =>
+                    !string.IsNullOrEmpty(e.Reason) &&
+                    e.Reason.Contains(normalizedSearch, StringComparison.OrdinalIgnoreCase));
+            }
+
             var expensesList = expenses.ToList();
             var categories = await GetCategoriesAsync(userId);
 
@@ -544,6 +553,7 @@ namespace MySuperSystem2025.Services
                 Expenses = expensesList.Select(MapToListItem).ToList(),
                 FilterPeriod = period,
                 FilterCategoryId = categoryId,
+                FilterSearchTerm = searchTerm,
                 FilterStartDate = startDate,
                 FilterEndDate = endDate,
                 TotalAmount = expensesList.Where(e => e.Amount > 0).Sum(e => e.Amount),

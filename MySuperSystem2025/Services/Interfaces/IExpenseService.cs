@@ -8,7 +8,7 @@ namespace MySuperSystem2025.Services.Interfaces
     public interface IExpenseService
     {
         Task<ExpenseDashboardViewModel> GetDashboardAsync(string userId, string? breakdownPeriod = null, string? selectedMonth = null);
-        Task<ExpenseListViewModel> GetExpensesAsync(string userId, string? period = null, int? categoryId = null, DateTime? startDate = null, DateTime? endDate = null);
+        Task<ExpenseListViewModel> GetExpensesAsync(string userId, string? period = null, int? categoryId = null, DateTime? startDate = null, DateTime? endDate = null, string? searchTerm = null);
         Task<EditExpenseViewModel?> GetExpenseForEditAsync(int id, string userId);
         Task<ExpenseListItemViewModel?> GetExpenseDetailsAsync(int id, string userId);
         Task<bool> CreateExpenseAsync(CreateExpenseViewModel model, string userId);
