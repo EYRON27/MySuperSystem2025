@@ -1,6 +1,52 @@
 @model MySuperSystem2025.Models.ViewModels.Expense.ExpenseListViewModel
+@using System.Text
+@using System.Text.Encodings.Web
+@using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.Html
 @{
     ViewData["Title"] = "All Expenses";
+
+    IHtmlContent HighlightSearchTerm(string? text, string? searchTerm)
+    {
+        var safeText = text ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(safeText) || string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return new HtmlString(HtmlEncoder.Default.Encode(safeText));
+        }
+
+        var term = searchTerm.Trim();
+        var matches = Regex.Matches(safeText, Regex.Escape(term), RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        if (matches.Count == 0)
+        {
+            return new HtmlString(HtmlEncoder.Default.Encode(safeText));
+        }
+
+        var sb = new StringBuilder();
+        var lastIndex = 0;
+
+        foreach (Match match in matches)
+        {
+            if (match.Index > lastIndex)
+            {
+                sb.Append(HtmlEncoder.Default.Encode(safeText[lastIndex..match.Index]));
+            }
+
+            sb.Append("<strong>");
+            sb.Append(HtmlEncoder.Default.Encode(safeText.Substring(match.Index, match.Length)));
+            sb.Append("</strong>");
+
+            lastIndex = match.Index + match.Length;
+        }
+
+        if (lastIndex < safeText.Length)
+        {
+            sb.Append(HtmlEncoder.Default.Encode(safeText[lastIndex..]));
+        }
+
+        return new HtmlString(sb.ToString());
+    }
 
     // Pre-compute chart data for the scripts section
     var chartExpensesAll = Model.Expenses.Where(e => e.Amount > 0).ToList();
@@ -331,11 +377,11 @@
                             <td>
                                 @if (isFundsAdded)
                                 {
-                                    <span class="text-success"><i class="bi bi-plus-circle me-1"></i>@expense.Reason</span>
+                                    <span class="text-success"><i class="bi bi-plus-circle me-1"></i>@HighlightSearchTerm(expense.Reason, Model.FilterSearchTerm)</span>
                                 }
                                 else
                                 {
-                                    @expense.Reason
+                                    @HighlightSearchTerm(expense.Reason, Model.FilterSearchTerm)
                                 }
                             </td>
                             <td style="text-align: right; font-weight: 600; @(isFundsAdded ? "color: #16a34a;" : "")">
