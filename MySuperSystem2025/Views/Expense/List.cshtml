@@ -33,9 +33,9 @@
                 sb.Append(HtmlEncoder.Default.Encode(safeText[lastIndex..match.Index]));
             }
 
-            sb.Append("<strong>");
+            sb.Append("<mark class=\"search-highlight\"><strong>");
             sb.Append(HtmlEncoder.Default.Encode(safeText.Substring(match.Index, match.Length)));
-            sb.Append("</strong>");
+            sb.Append("</strong></mark>");
 
             lastIndex = match.Index + match.Length;
         }
@@ -65,6 +65,13 @@
     .expense-list {
         max-width: 1400px;
         margin: 0 auto;
+    }
+
+    .search-highlight {
+        background-color: #fde68a;
+        color: inherit;
+        padding: 0 0.15rem;
+        border-radius: 0.2rem;
     }
     
     .page-header {
