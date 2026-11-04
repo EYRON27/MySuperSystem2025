@@ -200,18 +200,12 @@
         height: 36px;
     }
     
-    .btn-action i {
-        font-size: 1rem;
-    }
-    
-    .btn-action.btn-sm {
-        padding: 0.375rem 0.625rem;
-        min-width: 32px;
-        height: 32px;
-    }
-    
-    .btn-action.btn-sm i {
-        font-size: 0.875rem;
+    .expense-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        flex-wrap: nowrap;
+        white-space: nowrap;
     }
     
     /* Chart styles */
@@ -401,13 +395,15 @@
                                     <span>&#8369;@expense.Amount.ToString("N2")</span>
                                 }
                             </td>
-                            <td style="text-align: center;">
-                                <a asp-action="Edit" asp-route-id="@expense.Id" class="btn btn-action btn-sm btn-outline-primary" title="Edit">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                <a asp-action="Delete" asp-route-id="@expense.Id" class="btn btn-action btn-sm btn-outline-danger ms-1" title="Delete">
-                                    <i class="bi bi-trash"></i>
-                                </a>
+                            <td style="text-align: center; white-space: nowrap;">
+                                <div class="expense-actions">
+                                    <a asp-action="Edit" asp-route-id="@expense.Id" class="btn btn-action btn-sm btn-outline-primary" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <a asp-action="Delete" asp-route-id="@expense.Id" class="btn btn-action btn-sm btn-outline-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     }
